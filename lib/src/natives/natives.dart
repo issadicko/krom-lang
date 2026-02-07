@@ -1,4 +1,4 @@
-/// KodiScript Native Functions - Built-in functions for the language.
+/// KromScript Native Functions - Built-in functions for the language.
 library;
 
 import 'dart:convert';
@@ -10,7 +10,7 @@ import '../reactive/rx_list.dart';
 /// Native function signature.
 typedef NativeFunc = Object? Function(List<Object?>);
 
-/// Registry of native functions for KodiScript.
+/// Registry of native functions for KromScript.
 class NativeFunctions {
   final Map<String, NativeFunc> _functions = {};
 

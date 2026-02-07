@@ -1,4 +1,4 @@
-/// KodiScript Interpreter - Evaluates AST nodes.
+/// KromScript Interpreter - Evaluates AST nodes.
 library;
 
 import 'dart:developer';
@@ -12,17 +12,17 @@ class _MethodNotFound {
   const _MethodNotFound();
 }
 
-/// Sentinel value indicating a method was not found on a KodiBindable object.
+/// Sentinel value indicating a method was not found on a KromBindable object.
 const methodNotFound = _MethodNotFound();
 
-/// Interface for objects that can be bound to KodiScript.
+/// Interface for objects that can be bound to KromScript.
 ///
 /// Implement this interface on Dart classes you want to expose to
-/// KodiScript via the `.bind()` API.
+/// KromScript via the `.bind()` API.
 ///
 /// Example:
 /// ```dart
-/// class User implements KodiBindable {
+/// class User implements KromBindable {
 ///   final String name;
 ///   User(this.name);
 ///
@@ -39,7 +39,7 @@ const methodNotFound = _MethodNotFound();
 ///   }
 /// }
 /// ```
-abstract class KodiBindable {
+abstract class KromBindable {
   /// Get a property value by name.
   /// Returns null if the property doesn't exist.
   Object? getProperty(String name);
@@ -660,7 +660,7 @@ class Interpreter {
       final args = expr.arguments.map((a) => _evalExpression(a)).toList();
       for (final arg in args) {
         final output = arg?.toString() ?? 'null';
-        log(output, name: 'KodiScript');
+        log(output, name: 'KromScript');
         _env.addOutput(output);
       }
       return null;
@@ -802,12 +802,12 @@ class Interpreter {
 
   // ============ Bindable Object Support ============
 
-  /// Accesses properties on KodiBindable objects.
+  /// Accesses properties on KromBindable objects.
   Object? _reflectivePropertyAccess(Object obj, String propertyName) {
-    if (obj is! KodiBindable) {
+    if (obj is! KromBindable) {
       throw Exception(
           "cannot access property '$propertyName' on ${obj.runtimeType}: "
-          "object must implement KodiBindable");
+          "object must implement KromBindable");
     }
 
     // First try to get as a property
@@ -827,11 +827,11 @@ class Interpreter {
     });
   }
 
-  /// Converts a Dart value to a KodiScript-compatible value.
+  /// Converts a Dart value to a KromScript-compatible value.
   Object? _convertFromDartType(Object? value) {
     if (value == null) return null;
 
-    // Convert Dart ints to doubles (KodiScript's number type)
+    // Convert Dart ints to doubles (KromScript's number type)
     if (value is int) return value.toDouble();
 
     // Return other types as-is (String, double, bool, List, Map, custom objects)

@@ -1,10 +1,10 @@
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('Operation Limit', () {
     test('simple script completes within limit', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let x = 1
         let y = 2
         x + y
@@ -15,7 +15,7 @@ void main() {
     });
 
     test('exceeds operation limit', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
           sum = sum + i
@@ -30,7 +30,7 @@ void main() {
     test('infinite loop protection', () {
       final largeArray = List<double>.generate(10000, (i) => i.toDouble());
 
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in arr) {
           sum = sum + i
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('nested loops respect limit', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let count = 0
         for (i in [1, 2, 3, 4, 5]) {
           for (j in [1, 2, 3, 4, 5]) {
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('no limit by default', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
           sum = sum + i
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('zero means unlimited', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5]) {
           sum = sum + i

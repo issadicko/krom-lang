@@ -1,9 +1,9 @@
-/// KodiScript Lexer - Tokenizes source code.
+/// KromScript Lexer - Tokenizes source code.
 library;
 
 import '../token/token.dart';
 
-/// Lexer tokenizes KodiScript source code.
+/// Lexer tokenizes KromScript source code.
 class Lexer {
   final String _input;
   int _position = 0;

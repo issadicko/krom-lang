@@ -10,9 +10,9 @@ import '../ast/ast.dart';
 import '../interpreter/interpreter.dart';
 import '../natives/natives.dart';
 import '../reactive/rx.dart';
-import 'ks_engine_result.dart';
+import 'krom_engine_result.dart';
 
-export 'ks_engine_result.dart';
+export 'krom_engine_result.dart';
 
 /// Persistent script engine for mini-app execution.
 ///
@@ -59,7 +59,7 @@ class KSEngine {
   bool _loaded = false;
 
   /// The bindings to apply when loading a script.
-  final Map<String, KodiBindable> _bindings = {};
+  final Map<String, KromBindable> _bindings = {};
 
   /// Creates a new KSEngine instance.
   KSEngine() {
@@ -255,8 +255,8 @@ class KSEngine {
 
   /// Binds a Dart object to the script context.
   ///
-  /// The object must implement [KodiBindable].
-  void bind(String name, KodiBindable value) {
+  /// The object must implement [KromBindable].
+  void bind(String name, KromBindable value) {
     _bindings[name] = value;
     _env?.set(name, value);
   }

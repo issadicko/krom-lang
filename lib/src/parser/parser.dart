@@ -1,4 +1,4 @@
-/// KodiScript Parser - Parses tokens into an AST.
+/// KromScript Parser - Parses tokens into an AST.
 library;
 
 import '../token/token.dart';

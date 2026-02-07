@@ -1,60 +1,60 @@
 import 'package:test/test.dart';
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 
 void main() {
-  group('KodiScript', () {
+  group('KromScript', () {
     group('Basic Expressions', () {
       test('evaluates number literals', () {
-        expect(KodiScript.eval('42'), equals(42.0));
-        expect(KodiScript.eval('3.14'), equals(3.14));
+        expect(KromScript.eval('42'), equals(42.0));
+        expect(KromScript.eval('3.14'), equals(3.14));
       });
 
       test('evaluates string literals', () {
-        expect(KodiScript.eval('"hello"'), equals('hello'));
+        expect(KromScript.eval('"hello"'), equals('hello'));
       });
 
       test('evaluates boolean literals', () {
-        expect(KodiScript.eval('true'), equals(true));
-        expect(KodiScript.eval('false'), equals(false));
+        expect(KromScript.eval('true'), equals(true));
+        expect(KromScript.eval('false'), equals(false));
       });
 
       test('evaluates null literal', () {
-        expect(KodiScript.eval('null'), isNull);
+        expect(KromScript.eval('null'), isNull);
       });
 
       test('evaluates arithmetic', () {
-        expect(KodiScript.eval('2 + 3'), equals(5.0));
-        expect(KodiScript.eval('10 - 4'), equals(6.0));
-        expect(KodiScript.eval('3 * 4'), equals(12.0));
-        expect(KodiScript.eval('15 / 3'), equals(5.0));
+        expect(KromScript.eval('2 + 3'), equals(5.0));
+        expect(KromScript.eval('10 - 4'), equals(6.0));
+        expect(KromScript.eval('3 * 4'), equals(12.0));
+        expect(KromScript.eval('15 / 3'), equals(5.0));
       });
 
       test('evaluates comparison', () {
-        expect(KodiScript.eval('5 > 3'), equals(true));
-        expect(KodiScript.eval('3 < 5'), equals(true));
-        expect(KodiScript.eval('5 == 5'), equals(true));
-        expect(KodiScript.eval('5 != 3'), equals(true));
+        expect(KromScript.eval('5 > 3'), equals(true));
+        expect(KromScript.eval('3 < 5'), equals(true));
+        expect(KromScript.eval('5 == 5'), equals(true));
+        expect(KromScript.eval('5 != 3'), equals(true));
       });
 
       test('evaluates logical operators', () {
-        expect(KodiScript.eval('true && true'), equals(true));
-        expect(KodiScript.eval('true && false'), equals(false));
-        expect(KodiScript.eval('false || true'), equals(true));
-        expect(KodiScript.eval('!true'), equals(false));
+        expect(KromScript.eval('true && true'), equals(true));
+        expect(KromScript.eval('true && false'), equals(false));
+        expect(KromScript.eval('false || true'), equals(true));
+        expect(KromScript.eval('!true'), equals(false));
       });
     });
 
     group('Variables', () {
       test('declares and uses variables', () {
-        expect(KodiScript.eval('let x = 10\nx'), equals(10.0));
+        expect(KromScript.eval('let x = 10\nx'), equals(10.0));
       });
 
       test('reassigns variables', () {
-        expect(KodiScript.eval('let x = 5\nx = 10\nx'), equals(10.0));
+        expect(KromScript.eval('let x = 5\nx = 10\nx'), equals(10.0));
       });
 
       test('injects host variables', () {
-        final result = KodiScript.run(
+        final result = KromScript.run(
           'name + " World"',
           variables: {'name': 'Hello'},
         );
@@ -65,7 +65,7 @@ void main() {
     group('Control Flow', () {
       test('evaluates if-else', () {
         expect(
-          KodiScript.eval('''
+          KromScript.eval('''
             let x = 10
             if (x > 5) {
               "big"
@@ -78,7 +78,7 @@ void main() {
       });
 
       test('evaluates for-in loop', () {
-        final result = KodiScript.run('''
+        final result = KromScript.run('''
           let sum = 0
           for (n in [1, 2, 3, 4, 5]) {
             sum = sum + n
@@ -92,7 +92,7 @@ void main() {
     group('Functions', () {
       test('defines and calls functions', () {
         expect(
-          KodiScript.eval('''
+          KromScript.eval('''
             let add = fn(a, b) {
               return a + b
             }
@@ -104,7 +104,7 @@ void main() {
 
       test('supports closures', () {
         expect(
-          KodiScript.eval('''
+          KromScript.eval('''
             let makeAdder = fn(x) {
               return fn(y) {
                 return x + y
@@ -120,39 +120,39 @@ void main() {
 
     group('Arrays', () {
       test('creates arrays', () {
-        final result = KodiScript.eval('[1, 2, 3]') as List;
+        final result = KromScript.eval('[1, 2, 3]') as List;
         expect(result, equals([1.0, 2.0, 3.0]));
       });
 
       test('accesses array elements', () {
-        expect(KodiScript.eval('[10, 20, 30][1]'), equals(20.0));
+        expect(KromScript.eval('[10, 20, 30][1]'), equals(20.0));
       });
     });
 
     group('Objects', () {
       test('creates objects', () {
-        final result = KodiScript.eval('{name: "Alice", age: 30}') as Map;
+        final result = KromScript.eval('{name: "Alice", age: 30}') as Map;
         expect(result['name'], equals('Alice'));
         expect(result['age'], equals(30.0));
       });
 
       test('accesses object properties', () {
         expect(
-          KodiScript.eval('let obj = {x: 10}\nobj.x'),
+          KromScript.eval('let obj = {x: 10}\nobj.x'),
           equals(10.0),
         );
       });
 
       test('safe access returns null', () {
         expect(
-          KodiScript.eval('let obj = null\nobj?.x'),
+          KromScript.eval('let obj = null\nobj?.x'),
           isNull,
         );
       });
 
       test('elvis operator provides default', () {
         expect(
-          KodiScript.eval('null ?: "default"'),
+          KromScript.eval('null ?: "default"'),
           equals('default'),
         );
       });
@@ -160,36 +160,36 @@ void main() {
 
     group('Native Functions', () {
       test('string functions', () {
-        expect(KodiScript.eval('toUpperCase("hello")'), equals('HELLO'));
-        expect(KodiScript.eval('toLowerCase("HELLO")'), equals('hello'));
-        expect(KodiScript.eval('length("hello")'), equals(5.0));
-        expect(KodiScript.eval('trim("  hi  ")'), equals('hi'));
+        expect(KromScript.eval('toUpperCase("hello")'), equals('HELLO'));
+        expect(KromScript.eval('toLowerCase("HELLO")'), equals('hello'));
+        expect(KromScript.eval('length("hello")'), equals(5.0));
+        expect(KromScript.eval('trim("  hi  ")'), equals('hi'));
       });
 
       test('math functions', () {
-        expect(KodiScript.eval('abs(-5)'), equals(5.0));
-        expect(KodiScript.eval('floor(3.7)'), equals(3.0));
-        expect(KodiScript.eval('ceil(3.2)'), equals(4.0));
-        expect(KodiScript.eval('pow(2, 3)'), equals(8.0));
+        expect(KromScript.eval('abs(-5)'), equals(5.0));
+        expect(KromScript.eval('floor(3.7)'), equals(3.0));
+        expect(KromScript.eval('ceil(3.2)'), equals(4.0));
+        expect(KromScript.eval('pow(2, 3)'), equals(8.0));
       });
 
       test('type functions', () {
-        expect(KodiScript.eval('typeOf(42)'), equals('number'));
-        expect(KodiScript.eval('typeOf("hi")'), equals('string'));
-        expect(KodiScript.eval('isNull(null)'), equals(true));
-        expect(KodiScript.eval('isNumber(42)'), equals(true));
+        expect(KromScript.eval('typeOf(42)'), equals('number'));
+        expect(KromScript.eval('typeOf("hi")'), equals('string'));
+        expect(KromScript.eval('isNull(null)'), equals(true));
+        expect(KromScript.eval('isNumber(42)'), equals(true));
       });
 
       test('array functions', () {
-        expect(KodiScript.eval('size([1,2,3])'), equals(3.0));
-        expect(KodiScript.eval('first([1,2,3])'), equals(1.0));
-        expect(KodiScript.eval('last([1,2,3])'), equals(3.0));
+        expect(KromScript.eval('size([1,2,3])'), equals(3.0));
+        expect(KromScript.eval('first([1,2,3])'), equals(1.0));
+        expect(KromScript.eval('last([1,2,3])'), equals(3.0));
       });
     });
 
     group('Print Output', () {
       test('captures print output', () {
-        final result = KodiScript.run('''
+        final result = KromScript.run('''
           print("Hello")
           print("World")
         ''');
@@ -199,7 +199,7 @@ void main() {
 
     group('Custom Functions', () {
       test('registers and calls custom function', () {
-        final result = KodiScript.builder('double(21)')
+        final result = KromScript.builder('double(21)')
             .registerFunction('double', (args) => (args[0] as double) * 2)
             .execute();
         expect(result.value, equals(42.0));
@@ -208,61 +208,61 @@ void main() {
 
     group('Date/Time Functions', () {
       test('now returns timestamp', () {
-        final ts = KodiScript.eval('now()') as double;
+        final ts = KromScript.eval('now()') as double;
         expect(ts, greaterThan(1700000000000)); // After Nov 2023
       });
 
       test('date returns YYYY-MM-DD format', () {
-        final dateStr = KodiScript.eval('date()') as String;
+        final dateStr = KromScript.eval('date()') as String;
         expect(dateStr.length, equals(10));
         expect(dateStr[4], equals('-'));
       });
 
       test('time returns HH:MM:SS format', () {
-        final timeStr = KodiScript.eval('time()') as String;
+        final timeStr = KromScript.eval('time()') as String;
         expect(timeStr.length, equals(8));
         expect(timeStr[2], equals(':'));
       });
 
       test('datetime returns ISO format', () {
-        final dtStr = KodiScript.eval('datetime()') as String;
+        final dtStr = KromScript.eval('datetime()') as String;
         expect(dtStr.contains('T'), isTrue);
       });
 
       test('year, month, day extract components', () {
-        final year = KodiScript.eval('year()') as double;
+        final year = KromScript.eval('year()') as double;
         expect(year, greaterThanOrEqualTo(2024));
 
-        final month = KodiScript.eval('month()') as double;
+        final month = KromScript.eval('month()') as double;
         expect(month, inInclusiveRange(1, 12));
 
-        final day = KodiScript.eval('day()') as double;
+        final day = KromScript.eval('day()') as double;
         expect(day, inInclusiveRange(1, 31));
       });
 
       test('hour, minute, second extract components', () {
-        final hour = KodiScript.eval('hour()') as double;
+        final hour = KromScript.eval('hour()') as double;
         expect(hour, inInclusiveRange(0, 23));
 
-        final minute = KodiScript.eval('minute()') as double;
+        final minute = KromScript.eval('minute()') as double;
         expect(minute, inInclusiveRange(0, 59));
 
-        final second = KodiScript.eval('second()') as double;
+        final second = KromScript.eval('second()') as double;
         expect(second, inInclusiveRange(0, 59));
       });
 
       test('dayOfWeek returns 0-6', () {
-        final dow = KodiScript.eval('dayOfWeek()') as double;
+        final dow = KromScript.eval('dayOfWeek()') as double;
         expect(dow, inInclusiveRange(0, 6));
       });
 
       test('timestamp parses date string', () {
-        final ts = KodiScript.eval('timestamp("2024-12-25")') as double;
+        final ts = KromScript.eval('timestamp("2024-12-25")') as double;
         expect(ts, greaterThan(0));
       });
 
       test('formatDate formats timestamp', () {
-        final result = KodiScript.eval('''
+        final result = KromScript.eval('''
           let ts = timestamp("2024-12-25")
           formatDate(ts, "DD/MM/YYYY")
         ''');
@@ -270,13 +270,13 @@ void main() {
       });
 
       test('year, month, day from specific date', () {
-        expect(KodiScript.eval('year(timestamp("2024-12-25"))'), equals(2024.0));
-        expect(KodiScript.eval('month(timestamp("2024-12-25"))'), equals(12.0));
-        expect(KodiScript.eval('day(timestamp("2024-12-25"))'), equals(25.0));
+        expect(KromScript.eval('year(timestamp("2024-12-25"))'), equals(2024.0));
+        expect(KromScript.eval('month(timestamp("2024-12-25"))'), equals(12.0));
+        expect(KromScript.eval('day(timestamp("2024-12-25"))'), equals(25.0));
       });
 
       test('addDays adds days to timestamp', () {
-        final result = KodiScript.eval('''
+        final result = KromScript.eval('''
           let ts = timestamp("2024-01-01")
           let nextWeek = addDays(ts, 7)
           day(nextWeek)
@@ -285,7 +285,7 @@ void main() {
       });
 
       test('diffDays calculates difference', () {
-        final result = KodiScript.eval('''
+        final result = KromScript.eval('''
           let ts1 = timestamp("2024-01-01")
           let ts2 = timestamp("2024-01-08")
           diffDays(ts1, ts2)
@@ -294,7 +294,7 @@ void main() {
       });
 
       test('addHours adds hours to timestamp', () {
-        final result = KodiScript.eval('''
+        final result = KromScript.eval('''
           let ts = now()
           let later = addHours(ts, 24)
           diffDays(ts, later)

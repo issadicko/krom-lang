@@ -1,7 +1,7 @@
-# KodiScript Dart SDK
+# KromScript Dart SDK
 
-[![pub package](https://img.shields.io/pub/v/kodi_script.svg)](https://pub.dev/packages/kodi_script)
-[![Release](https://img.shields.io/github/v/release/issadicko/kodi-script-dart)](https://github.com/issadicko/kodi-script-dart/releases)
+[![pub package](https://img.shields.io/pub/v/krom_script.svg)](https://pub.dev/packages/krom_script)
+[![Release](https://img.shields.io/github/v/release/issadicko/krom-lang)](https://github.com/issadicko/krom-lang/releases)
 
 A lightweight, embeddable scripting language interpreter for Dart/Flutter applications.
 
@@ -13,28 +13,28 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  kodi_script: ^0.2.0
+  krom_script: ^0.2.0
 ```
 
 ## Quick Start
 
 ```dart
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 
 void main() {
   // Simple evaluation
-  final result = KodiScript.eval('2 + 3 * 4');
+  final result = KromScript.eval('2 + 3 * 4');
   print(result); // 14.0
 
   // With variables
-  final greeting = KodiScript.run(
+  final greeting = KromScript.run(
     'greeting + ", " + name + "!"',
     variables: {'greeting': 'Hello', 'name': 'World'},
   );
   print(greeting.value); // "Hello, World!"
 
   // Capture output
-  final output = KodiScript.run('''
+  final output = KromScript.run('''
     let items = ["apple", "banana", "cherry"]
     for (item in items) {
       print(item)
@@ -55,12 +55,12 @@ void main() {
 
 ## 🔌 Extensibilité
 
-KodiScript est conçu pour être **extensible**. Vous pouvez enrichir le langage en ajoutant vos propres fonctions natives.
+KromScript est conçu pour être **extensible**. Vous pouvez enrichir le langage en ajoutant vos propres fonctions natives.
 
 ### Fonctions personnalisées
 
 ```dart
-final result = KodiScript.builder('greet("Dart")')
+final result = KromScript.builder('greet("Dart")')
     .registerFunction('greet', (args) => 'Hello, ${args[0]}!')
     .execute();
 
@@ -77,7 +77,7 @@ class ScriptEngine {
   ScriptEngine(this.userRepo, this.notifications);
   
   Future<ScriptResult> execute(String script, Map<String, dynamic> context) {
-    return KodiScript.builder(script)
+    return KromScript.builder(script)
       .withVariables(context)
       .registerFunction('fetchUser', (args) async {
         return await userRepo.findById(args[0] as int);
@@ -104,13 +104,13 @@ Cela permet à vos utilisateurs d'écrire des scripts puissants tout en gardant 
 
 ## API Reference
 
-### KodiScript.eval(source)
+### KromScript.eval(source)
 Evaluates a script and returns the result value.
 
-### KodiScript.run(source, {variables})
+### KromScript.run(source, {variables})
 Runs a script with optional variables and returns `ScriptResult`.
 
-### KodiScript.builder(source)
+### KromScript.builder(source)
 Creates a builder for advanced configuration.
 
 ## Native Functions

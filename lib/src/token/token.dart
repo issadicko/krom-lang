@@ -1,7 +1,7 @@
-/// KodiScript Token Types and Token class.
+/// KromScript Token Types and Token class.
 library;
 
-/// Represents token types in KodiScript.
+/// Represents token types in KromScript.
 enum TokenType {
   // Special
   illegal,

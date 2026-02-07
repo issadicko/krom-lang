@@ -1,4 +1,4 @@
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -401,7 +401,7 @@ void main() {
     });
 
     test('should return JSON structure from build()', () async {
-      // Note: KodiScript requires objects/arrays on single lines
+      // Note: KromScript requires objects/arrays on single lines
       await engine.load('''
         let build = fn() {
           return { type: "Column", children: [ { type: "Text", props: { content: "Hello" } } ] }
@@ -434,7 +434,7 @@ void main() {
       var ui = buildResult.value as Map<String, dynamic>;
       var children = ui['children'] as List;
       var textWidget = children[0] as Map<String, dynamic>;
-      // Note: KodiScript numbers are doubles, so 0 becomes "0.0"
+      // Note: KromScript numbers are doubles, so 0 becomes "0.0"
       expect(textWidget['props']['content'], equals('Counter: 0.0'));
 
       // Increment

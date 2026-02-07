@@ -5,16 +5,16 @@ export 'computed.dart';
 
 /// A reactive variable that notifies listeners when its value changes.
 ///
-/// Implements [KodiBindable] to be usable directly from KodiScript.
+/// Implements [KromBindable] to be usable directly from KromScript.
 ///
-/// Usage from KodiScript:
+/// Usage from KromScript:
 /// ```
 /// var counter = Obs(0)
 /// counter.value        // Get the value
 /// counter.set(5)       // Set the value
 /// counter.update(fn)   // Update via function
 /// ```
-class Rx<T> implements KodiBindable {
+class Rx<T> implements KromBindable {
   T _value;
   final List<void Function()> _listeners = [];
 
@@ -67,7 +67,7 @@ class Rx<T> implements KodiBindable {
     }
   }
 
-  // ============ KodiBindable Implementation ============
+  // ============ KromBindable Implementation ============
 
   @override
   Object? getProperty(String name) {
@@ -116,7 +116,7 @@ class Rx<T> implements KodiBindable {
   String toString() => 'Rx($_value)';
 }
 
-/// Factory function to create Rx instances from KodiScript.
+/// Factory function to create Rx instances from KromScript.
 ///
 /// This function is registered as 'Obs' in the native functions.
 Rx<Object?> createObs(List<Object?> args) {

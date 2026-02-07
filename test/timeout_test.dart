@@ -1,10 +1,10 @@
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('Timeout Tests', () {
     test('simple script completes within timeout', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let x = 1
         let y = 2
         x + y
@@ -17,7 +17,7 @@ void main() {
       final largeArray = List<double>.generate(1000000, (i) => i.toDouble());
 
       final stopwatch = Stopwatch()..start();
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in arr) {
           sum = sum + i
@@ -36,7 +36,7 @@ void main() {
     });
 
     test('nested loops respect timeout', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let count = 0
         for (i in [1, 2, 3]) {
           for (j in [1, 2, 3]) {
@@ -54,7 +54,7 @@ void main() {
     });
 
     test('no timeout by default', () {
-      final result = KodiScript.builder('''
+      final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5]) {
           sum = sum + i

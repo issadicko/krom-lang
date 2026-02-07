@@ -1,4 +1,4 @@
-/// KodiScript Abstract Syntax Tree (AST) node definitions.
+/// KromScript Abstract Syntax Tree (AST) node definitions.
 library;
 
 import '../token/token.dart';

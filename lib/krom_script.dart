@@ -1,17 +1,17 @@
-/// KodiScript - A lightweight, embeddable scripting language for Dart.
+/// KromScript - A lightweight, embeddable scripting language for Dart.
 ///
 /// Usage:
 /// ```dart
-/// import 'package:kodi_script/kodi_script.dart';
+/// import 'package:krom_script/krom_script.dart';
 ///
-/// final result = KodiScript.run('''
-///   let name = "Kodi"
+/// final result = KromScript.run('''
+///   let name = "Krom"
 ///   print("Hello " + name)
 /// ''');
 ///
-/// print(result.output); // ["Hello Kodi"]
+/// print(result.output); // ["Hello Krom"]
 /// ```
-library kodi_script;
+library krom_script;
 
 export 'src/token/token.dart';
 export 'src/lexer/lexer.dart';
@@ -21,8 +21,8 @@ export 'src/interpreter/interpreter.dart';
 export 'src/natives/natives.dart';
 
 // Mini-App Engine exports
-export 'src/engine/ks_engine.dart';
-export 'src/engine/ks_engine_result.dart';
+export 'src/engine/krom_engine.dart';
+export 'src/engine/krom_engine_result.dart';
 export 'src/reactive/rx.dart';
 export 'src/reactive/rx_notifier.dart';
 
@@ -47,8 +47,8 @@ class ScriptResult {
   bool get hasErrors => errors.isNotEmpty;
 }
 
-/// KodiScript is the main entry point for the KodiScript SDK.
-class KodiScript {
+/// KromScript is the main entry point for the KromScript SDK.
+class KromScript {
   final String _source;
   final Map<String, Object?> _variables;
   final Map<String, NativeFunc> _customFunctions;
@@ -56,7 +56,7 @@ class KodiScript {
   final int _maxOps;
   final Duration _timeout;
 
-  KodiScript._({
+  KromScript._({
     required String source,
     Map<String, Object?>? variables,
     Map<String, NativeFunc>? customFunctions,
@@ -70,12 +70,12 @@ class KodiScript {
         _maxOps = maxOps,
         _timeout = timeout;
 
-  /// Builder for KodiScript execution.
-  static KodiScriptBuilder builder(String source) => KodiScriptBuilder(source);
+  /// Builder for KromScript execution.
+  static KromScriptBuilder builder(String source) => KromScriptBuilder(source);
 
   /// Run a script with optional variables.
   static ScriptResult run(String source, {Map<String, Object?>? variables}) {
-    return KodiScriptBuilder(source)
+    return KromScriptBuilder(source)
         .withVariables(variables ?? {})
         .execute();
   }
@@ -84,7 +84,7 @@ class KodiScript {
   static Object? eval(String source) {
     final result = run(source);
     if (result.hasErrors) {
-      throw KodiScriptException(result.errors);
+      throw KromScriptException(result.errors);
     }
     return result.value;
   }
@@ -145,8 +145,8 @@ class KodiScript {
   }
 }
 
-/// Builder for KodiScript execution.
-class KodiScriptBuilder {
+/// Builder for KromScript execution.
+class KromScriptBuilder {
   final String _source;
   final Map<String, Object?> _variables = {};
   final Map<String, NativeFunc> _customFunctions = {};
@@ -154,35 +154,35 @@ class KodiScriptBuilder {
   int _maxOps = 0; // 0 = unlimited
   Duration _timeout = Duration.zero; // zero = no timeout
 
-  KodiScriptBuilder(this._source);
+  KromScriptBuilder(this._source);
 
   /// Inject host variables into the script context.
-  KodiScriptBuilder withVariables(Map<String, Object?> vars) {
+  KromScriptBuilder withVariables(Map<String, Object?> vars) {
     _variables.addAll(vars);
     return this;
   }
 
   /// Inject a single variable.
-  KodiScriptBuilder withVariable(String name, Object? value) {
+  KromScriptBuilder withVariable(String name, Object? value) {
     _variables[name] = value;
     return this;
   }
 
   /// Register a custom native function.
-  KodiScriptBuilder registerFunction(String name, NativeFunc fn) {
+  KromScriptBuilder registerFunction(String name, NativeFunc fn) {
     _customFunctions[name] = fn;
     return this;
   }
 
   /// Bind a Dart object to the script context.
   ///
-  /// The object must implement [KodiBindable] to expose properties and methods
-  /// to KodiScript. This allows the script to access the object's properties
+  /// The object must implement [KromBindable] to expose properties and methods
+  /// to KromScript. This allows the script to access the object's properties
   /// and call its methods.
   ///
   /// Example:
   /// ```dart
-  /// class User implements KodiBindable {
+  /// class User implements KromBindable {
   ///   final String name;
   ///   User(this.name);
   ///
@@ -196,37 +196,37 @@ class KodiScriptBuilder {
   ///   }
   /// }
   ///
-  /// final result = KodiScript.builder('user.greet()')
+  /// final result = KromScript.builder('user.greet()')
   ///     .bind('user', User('Alice'))
   ///     .execute();
   /// ```
-  KodiScriptBuilder bind(String name, KodiBindable obj) {
+  KromScriptBuilder bind(String name, KromBindable obj) {
     _variables[name] = obj;
     return this;
   }
 
   /// Enable or disable AST caching.
-  KodiScriptBuilder withCache(bool enabled) {
+  KromScriptBuilder withCache(bool enabled) {
     _useCache = enabled;
     return this;
   }
 
   /// Set the maximum number of operations allowed.
   /// Use this to protect against infinite loops.
-  KodiScriptBuilder withMaxOperations(int maxOps) {
+  KromScriptBuilder withMaxOperations(int maxOps) {
     _maxOps = maxOps;
     return this;
   }
 
   /// Set the execution timeout.
-  KodiScriptBuilder withTimeout(Duration timeout) {
+  KromScriptBuilder withTimeout(Duration timeout) {
     _timeout = timeout;
     return this;
   }
 
   /// Execute the script.
   ScriptResult execute() {
-    return KodiScript._(
+    return KromScript._(
       source: _source,
       variables: _variables,
       customFunctions: _customFunctions,
@@ -238,10 +238,10 @@ class KodiScriptBuilder {
 }
 
 /// Exception thrown when script execution fails.
-class KodiScriptException implements Exception {
+class KromScriptException implements Exception {
   final List<String> errors;
 
-  KodiScriptException(this.errors);
+  KromScriptException(this.errors);
 
   @override
   String toString() => errors.isNotEmpty ? errors.first : 'Unknown error';

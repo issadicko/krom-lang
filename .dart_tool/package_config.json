@@ -290,7 +290,7 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "kodi_script",
+      "name": "krom_script",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.0"

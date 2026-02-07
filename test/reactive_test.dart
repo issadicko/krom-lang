@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 
 void main() {
   group('Computed', () {

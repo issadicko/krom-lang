@@ -1,4 +1,4 @@
-Ceci est le cahier des charges technique final et consolidé pour le projet de système de Mini-Apps KodiScript sur Flutter.
+Ceci est le cahier des charges technique final et consolidé pour le projet de système de Mini-Apps KromScript sur Flutter.
 
 Il intègre toutes les décisions architecturales prises : exécution monothread, gestion d'état par persistance de contexte, réactivité fine type `Obx`, et mapping UI déclaratif.
 
@@ -19,7 +19,7 @@ Le système permet d'exécuter des micro-applications dynamiques (scripts) au se
 ---
 
 ## 2. Le Moteur (KSEngine Wrapper)
-Une classe Dart encapsulant la librairie `kodi-script-dart`.
+Une classe Dart encapsulant la librairie `krom-lang`.
 
 ### 2.1 Responsabilités
 *   Gérer la mémoire vive de la mini-app (`context`).
@@ -49,10 +49,10 @@ class KSEngine {
 ---
 
 ## 3. Gestion de l'État et Réactivité (Rx System)
-Implémentation d'une réactivité implicite inspirée de GetX, rendue possible par l'interface `KodiBindable`.
+Implémentation d'une réactivité implicite inspirée de GetX, rendue possible par l'interface `KromBindable`.
 
 ### 3.1 Composant `Rx<T>` (Dart)
-Classe implémentant `KodiBindable` pour être manipulable directement par le script.
+Classe implémentant `KromBindable` pour être manipulable directement par le script.
 *   **Interface Script :**
     *   `getProperty('value')` : Retourne la valeur et **capture la dépendance** si un `Obx` est actif.
     *   `callMethod('set', [val])` : Met à jour la valeur et **notifie les widgets abonnés**.
@@ -143,8 +143,8 @@ function buildCountText() {
 
 ---
 
-## 6. Recommandations d'Amélioration Moteur (KodiScript)
-Pour assurer la robustesse à long terme, ces évolutions du package `kodi-script-dart` seraient bénéfiques (via PR ou Fork) :
+## 6. Recommandations d'Amélioration Moteur (KromScript)
+Pour assurer la robustesse à long terme, ces évolutions du package `krom-lang` seraient bénéfiques (via PR ou Fork) :
 
 1.  **Invocation Native :** Ajouter une méthode `call(String funcName, List args)` pour éviter le hack de l'injection de string `"$funcName()"`.
 2.  **Parsing Séparé :** Séparer la méthode `parse` (création AST) de `run` (exécution) pour ne pas re-analyser le code à chaque clic (Performance ++).

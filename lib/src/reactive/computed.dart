@@ -4,7 +4,7 @@ import '../interpreter/interpreter.dart';
 
 /// A computed value that automatically recalculates when dependencies change.
 ///
-/// Usage in KodiScript:
+/// Usage in KromScript:
 /// ```
 /// let a = Obs(5)
 /// let b = Obs(10)
@@ -13,7 +13,7 @@ import '../interpreter/interpreter.dart';
 /// a.set(7)
 /// print(sum.value)  // 17 (automatically recalculated)
 /// ```
-class Computed implements Rx<Object?>, KodiBindable {
+class Computed implements Rx<Object?>, KromBindable {
   final Object? Function() _computeFn;
   
   Object? _cachedValue;
@@ -111,7 +111,7 @@ class Computed implements Rx<Object?>, KodiBindable {
     _listeners.clear();
   }
 
-  // KodiBindable implementation
+  // KromBindable implementation
   @override
   Object? getProperty(String name) {
     if (name == 'value') return value;

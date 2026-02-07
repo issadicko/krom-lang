@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
@@ -63,7 +63,7 @@ void main() {
           }
         }
         
-        var builder = KodiScript.builder(source);
+        var builder = KromScript.builder(source);
         if (maxOps > 0) {
           builder.withMaxOperations(maxOps);
         }

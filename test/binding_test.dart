@@ -1,9 +1,9 @@
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 import 'package:test/test.dart';
 
-// Test classes for KodiBindable binding
+// Test classes for KromBindable binding
 
-class Address implements KodiBindable {
+class Address implements KromBindable {
   final String city;
   final String country;
 
@@ -27,7 +27,7 @@ class Address implements KodiBindable {
   }
 }
 
-class User implements KodiBindable {
+class User implements KromBindable {
   final String name;
   final int age;
   final Address address;
@@ -73,7 +73,7 @@ class User implements KodiBindable {
   }
 }
 
-class Calculator implements KodiBindable {
+class Calculator implements KromBindable {
   double add(double a, double b) => a + b;
 
   int multiply(int x, int y) => x * y;
@@ -108,11 +108,11 @@ class Calculator implements KodiBindable {
 }
 
 void main() {
-  group('KodiBindable Tests', () {
+  group('KromBindable Tests', () {
     test('bind field access', () {
       final user = User('Alice', 30, Address('Paris', 'France'));
 
-      final result = KodiScript.builder('user.name').bind('user', user).execute();
+      final result = KromScript.builder('user.name').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Alice');
@@ -121,7 +121,7 @@ void main() {
     test('bind method call', () {
       final user = User('Bob', 25, Address('London', 'UK'));
 
-      final result = KodiScript.builder('user.sayHello()').bind('user', user).execute();
+      final result = KromScript.builder('user.sayHello()').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, "Hello, I'm Bob");
@@ -130,7 +130,7 @@ void main() {
     test('bind method with arguments', () {
       final user = User('Charlie', 28, Address('Berlin', 'Germany'));
 
-      final result = KodiScript.builder('user.greet("Hi")').bind('user', user).execute();
+      final result = KromScript.builder('user.greet("Hi")').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, "Hi, Charlie!");
@@ -139,7 +139,7 @@ void main() {
     test('bind nested objects', () {
       final user = User('David', 35, Address('Tokyo', 'Japan'));
 
-      final result = KodiScript.builder('user.address.city').bind('user', user).execute();
+      final result = KromScript.builder('user.address.city').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Tokyo');
@@ -148,7 +148,7 @@ void main() {
     test('bind method chaining', () {
       final user = User('Emily', 32, Address('Madrid', 'Spain'));
 
-      final result = KodiScript.builder('user.getAddress().city').bind('user', user).execute();
+      final result = KromScript.builder('user.getAddress().city').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Madrid');
@@ -157,7 +157,7 @@ void main() {
     test('bind numeric conversion', () {
       final calc = Calculator();
 
-      final result = KodiScript.builder('calc.add(10, 20)').bind('calc', calc).execute();
+      final result = KromScript.builder('calc.add(10, 20)').bind('calc', calc).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 30.0);
@@ -166,10 +166,10 @@ void main() {
     test('bind int return converts to double', () {
       final user = User('Frank', 42, Address('Rome', 'Italy'));
 
-      final result = KodiScript.builder('user.getAge()').bind('user', user).execute();
+      final result = KromScript.builder('user.getAge()').bind('user', user).execute();
 
       expect(result.hasErrors, false);
-      expect(result.value, 42.0); // KodiScript uses doubles for numbers
+      expect(result.value, 42.0); // KromScript uses doubles for numbers
     });
 
     test('bind multiple objects', () {
@@ -182,7 +182,7 @@ void main() {
         greeting + " " + sum
       ''';
 
-      final result = KodiScript.builder(source)
+      final result = KromScript.builder(source)
           .bind('user', user)
           .bind('calc', calc)
           .execute();
@@ -202,7 +202,7 @@ void main() {
         greeting + " I am " + age + " years old and I live in " + city
       ''';
 
-      final result = KodiScript.builder(source).bind('user', user).execute();
+      final result = KromScript.builder(source).bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, "Hello, I'm Henry I am 29.0 years old and I live in Vienna");
@@ -211,7 +211,7 @@ void main() {
     test('bind non-existent method throws error', () {
       final user = User('Ivan', 31, Address('Prague', 'Czech Republic'));
 
-      final result = KodiScript.builder('user.nonExistent()').bind('user', user).execute();
+      final result = KromScript.builder('user.nonExistent()').bind('user', user).execute();
 
       expect(result.hasErrors, true);
       expect(result.errors.first, contains('nonExistent'));
@@ -226,7 +226,7 @@ void main() {
         calc.add(x, y)
       ''';
 
-      final result = KodiScript.builder(source).bind('calc', calc).execute();
+      final result = KromScript.builder(source).bind('calc', calc).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 15.0);
@@ -244,7 +244,7 @@ void main() {
         sum
       ''';
 
-      final result = KodiScript.builder(source).bind('calc', calc).execute();
+      final result = KromScript.builder(source).bind('calc', calc).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 15.0);
@@ -253,7 +253,7 @@ void main() {
     test('bind method with multiple arguments', () {
       final calc = Calculator();
 
-      final result = KodiScript.builder('calc.multiply(6, 7)').bind('calc', calc).execute();
+      final result = KromScript.builder('calc.multiply(6, 7)').bind('calc', calc).execute();
 
       if (result.hasErrors) {
         print('Errors: ${result.errors}');

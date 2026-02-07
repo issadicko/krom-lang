@@ -4,8 +4,8 @@ import 'rx.dart';
 
 /// A reactive list that notifies listeners when its content changes.
 ///
-/// Implements [KodiBindable] to expose list methods to KodiScript.
-class RxList<E> extends Rx<List<E>> implements KodiBindable {
+/// Implements [KromBindable] to expose list methods to KromScript.
+class RxList<E> extends Rx<List<E>> implements KromBindable {
   RxList([List<E>? initial]) : super(initial ?? []);
 
   // -- List Methods exposed to Script --
@@ -166,7 +166,7 @@ class RxList<E> extends Rx<List<E>> implements KodiBindable {
   }
 }
 
-/// Factory function to create RxList from KodiScript.
+/// Factory function to create RxList from KromScript.
 RxList<Object?> createRxList(List<Object?> args) {
   if (args.isNotEmpty && args[0] is List) {
     return RxList<Object?>(List.from(args[0] as List));

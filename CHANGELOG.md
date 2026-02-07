@@ -4,7 +4,7 @@
 
 ### Breaking Changes
 
-- **Binding API**: Objects passed to `.bind()` must now implement `KodiBindable` interface
+- **Binding API**: Objects passed to `.bind()` must now implement `KromBindable` interface
   - This enables support for **iOS, Android, and Web** platforms
   - Removed dependency on `dart:mirrors` which is not available on these platforms
 
@@ -18,12 +18,12 @@ class User {
   User(this.name);
   String greet() => "Hello, $name!";
 }
-final result = KodiScript.builder('user.greet()').bind('user', User('Alice')).execute();
+final result = KromScript.builder('user.greet()').bind('user', User('Alice')).execute();
 ```
 
 After (0.2.0):
 ```dart
-class User implements KodiBindable {
+class User implements KromBindable {
   final String name;
   User(this.name);
   String greet() => "Hello, $name!";
@@ -37,7 +37,7 @@ class User implements KodiBindable {
     return null;
   }
 }
-final result = KodiScript.builder('user.greet()').bind('user', User('Alice')).execute();
+final result = KromScript.builder('user.greet()').bind('user', User('Alice')).execute();
 ```
 
 ## 0.1.1

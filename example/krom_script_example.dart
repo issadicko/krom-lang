@@ -1,11 +1,11 @@
-/// Example demonstrating the KodiScript SDK.
+/// Example demonstrating the KromScript SDK.
 ///
-/// Run with: dart run example/kodi_script_example.dart
+/// Run with: dart run example/krom_script_example.dart
 
-import 'package:kodi_script/kodi_script.dart';
+import 'package:krom_script/krom_script.dart';
 
 // Example bindable class
-class Calculator implements KodiBindable {
+class Calculator implements KromBindable {
   double add(double a, double b) => a + b;
   double multiply(double a, double b) => a * b;
 
@@ -30,8 +30,8 @@ class Calculator implements KodiBindable {
 void main() {
   // Basic variable usage
   print('=== Basic Variables ===');
-  final result1 = KodiScript.run('''
-    let name = "KodiScript"
+  final result1 = KromScript.run('''
+    let name = "KromScript"
     let version = 0.2
     print("Welcome to " + name + " v" + version)
     name + " is awesome!"
@@ -41,7 +41,7 @@ void main() {
 
   // Control flow with if/else
   print('=== Control Flow ===');
-  final result2 = KodiScript.run('''
+  final result2 = KromScript.run('''
     let score = 85
     if (score >= 90) {
       "A"
@@ -55,7 +55,7 @@ void main() {
 
   // For loop iteration
   print('=== For Loop ===');
-  final result3 = KodiScript.run('''
+  final result3 = KromScript.run('''
     let numbers = [1, 2, 3, 4, 5]
     let sum = 0
     for (n in numbers) {
@@ -67,7 +67,7 @@ void main() {
 
   // While loop
   print('=== While Loop ===');
-  final result4 = KodiScript.run('''
+  final result4 = KromScript.run('''
     let i = 1
     let product = 1
     while (i <= 5) {
@@ -80,7 +80,7 @@ void main() {
 
   // User-defined functions
   print('=== Functions ===');
-  final result5 = KodiScript.run('''
+  final result5 = KromScript.run('''
     let greet = fn(name) {
       return "Hello, " + name + "!"
     }
@@ -96,7 +96,7 @@ void main() {
   // Binding Dart objects
   print('=== Object Binding ===');
   final calc = Calculator();
-  final result6 = KodiScript.builder('''
+  final result6 = KromScript.builder('''
     let a = 10
     let b = 5
     print("Add: " + calc.add(a, b))
@@ -108,7 +108,7 @@ void main() {
 
   // Array higher-order functions
   print('=== Higher-Order Functions ===');
-  final result7 = KodiScript.run('''
+  final result7 = KromScript.run('''
     let numbers = [1, 2, 3, 4, 5]
     
     // Double each number
@@ -124,7 +124,7 @@ void main() {
 
   // Null-safe operations
   print('=== Null Safety ===');
-  final result8 = KodiScript.run('''
+  final result8 = KromScript.run('''
     let user = { "name": "Alice", "email": null }
     let email = user?.email ?: "no-email@example.com"
     email

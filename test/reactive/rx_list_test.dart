@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:kodi_script/src/reactive/rx_list.dart';
-import 'package:kodi_script/src/reactive/rx_notifier.dart';
+import 'package:krom_script/src/reactive/rx_list.dart';
+import 'package:krom_script/src/reactive/rx_notifier.dart';
 
 void main() {
   group('RxList', () {

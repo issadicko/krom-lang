@@ -1,10 +1,10 @@
 {
   "roots": [
-    "kodi_script"
+    "krom_script"
   ],
   "packages": [
     {
-      "name": "kodi_script",
+      "name": "krom_script",
       "version": "0.2.0",
       "dependencies": [
         "crypto"
