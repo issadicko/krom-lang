@@ -4,6 +4,7 @@ library;
 import '../token/token.dart';
 import '../lexer/lexer.dart';
 import '../ast/ast.dart';
+import '../errors/krom_exception.dart'; // Import exception class
 
 /// Operator precedence levels.
 const int _lowest = 1;
@@ -46,7 +47,7 @@ class Parser {
   final Lexer _lexer;
   Token _curToken = const Token(TokenType.eof, '');
   Token _peekToken = const Token(TokenType.eof, '');
-  final List<String> _errors = [];
+  final List<KromSyntaxError> _syntaxErrors = [];
 
   final Map<TokenType, Expression? Function()> _prefixParseFns = {};
   final Map<TokenType, Expression? Function(Expression)> _infixParseFns = {};
@@ -85,7 +86,6 @@ class Parser {
     _infixParseFns[TokenType.dot] = _parsePropertyAccess;
     _infixParseFns[TokenType.safeAccess] = _parseSafeAccess;
     _infixParseFns[TokenType.lparen] = _parseCallExpression;
-    _infixParseFns[TokenType.lparen] = _parseCallExpression;
     _infixParseFns[TokenType.lbracket] = _parseIndexExpression;
     _infixParseFns[TokenType.assign] = _parseAssignmentExpression;
 
@@ -94,10 +94,19 @@ class Parser {
     _nextToken();
   }
 
-  List<String> errors() => List.unmodifiable(_errors);
+  // Legacy getter for compatibility, returns formatted error strings
+  List<String> errors() => _syntaxErrors.map((e) => e.toString()).toList();
 
+  // New getter for structured errors
+  List<KromSyntaxError> get syntaxErrors => List.unmodifiable(_syntaxErrors);
+
+  void _addSyntaxError(String message, Token token) {
+     _syntaxErrors.add(KromSyntaxError(message, line: token.line, column: token.column));
+  }
+
+  // Keeping _addError for now to minimize diffs, but redirecting
   void _addError(String message) {
-    _errors.add('line ${_curToken.line}, col ${_curToken.column}: $message');
+     _addSyntaxError(message, _curToken);
   }
 
   void _nextToken() {
@@ -113,8 +122,12 @@ class Parser {
       _nextToken();
       return true;
     }
-    _addError('expected $type, got ${_peekToken.type}');
+    _peekError(type); // Use specialized error helper
     return false;
+  }
+  
+  void _peekError(TokenType type) {
+    _addSyntaxError('expected $type, got ${_peekToken.type}', _peekToken);
   }
 
   int _peekPrecedence() => _precedences[_peekToken.type] ?? _lowest;
@@ -393,11 +406,35 @@ class Parser {
         // Find matching }
         var braceCount = 1;
         final exprStart = i;
-        final openBrace = '{'.codeUnitAt(0);
-        final closeBrace = '}'.codeUnitAt(0);
+        final openBrace = '{';
+        final closeBrace = '}';
+
         while (i < literal.length && braceCount > 0) {
-          if (literal.codeUnitAt(i) == openBrace) braceCount++;
-          else if (literal.codeUnitAt(i) == closeBrace) braceCount--;
+          final char = literal[i];
+
+          // Skip strings inside interpolation
+          if (char == '"' || char == "'") {
+            final quote = char;
+            i++;
+            while (i < literal.length) {
+              if (literal[i] == '\\') {
+                i += 2; // skip escape sequence
+              } else if (literal[i] == quote) {
+                i++; // consume closing quote
+                break;
+              } else {
+                i++;
+              }
+            }
+            continue;
+          }
+
+          if (char == openBrace) {
+            braceCount++;
+          } else if (char == closeBrace) {
+            braceCount--;
+          }
+
           if (braceCount > 0) i++;
         }
 
@@ -411,7 +448,10 @@ class Parser {
         final expr = exprParser._parseExpression(_lowest);
 
         if (exprParser.errors().isNotEmpty) {
-          _errors.addAll(exprParser.errors());
+           // We digest the errors from the sub-parser
+           for (final err in exprParser.syntaxErrors) {
+             _syntaxErrors.add(err);
+           }
         }
 
         if (expr != null) {
@@ -438,10 +478,69 @@ class Parser {
   }
 
   Expression? _parseGroupedExpression() {
+    final token = _curToken; // '('
     _nextToken();
+
+    // Check for empty params: () => ...
+    if (_curTokenIs(TokenType.rparen) && _peekTokenIs(TokenType.arrow)) {
+      _nextToken(); // consume )
+      _nextToken(); // consume =>
+      return _parseArrowFunctionBody(token, []);
+    }
+
     final exp = _parseExpression(_lowest);
+
+    // Case: (a, b, c) => ...
+    if (_peekTokenIs(TokenType.comma)) {
+      final params = <Identifier>[];
+      if (exp is! Identifier) {
+        _addError("expected identifier in parameter list");
+        return null; // or treat as syntax error
+      }
+      params.add(exp);
+
+      while (_peekTokenIs(TokenType.comma)) {
+        _nextToken(); // consume ,
+        _nextToken();
+        final nextExp = _parseExpression(_lowest);
+        if (nextExp is! Identifier) {
+          _addError("expected identifier in parameter list");
+          return null;
+        }
+        params.add(nextExp);
+      }
+
+      if (!_expectPeek(TokenType.rparen)) return null;
+
+      // Must have arrow
+      if (!_expectPeek(TokenType.arrow)) return null;
+
+      _nextToken(); // consume => (now at start of body expression)
+      return _parseArrowFunctionBody(token, params);
+    }
+
     if (!_expectPeek(TokenType.rparen)) return null;
+
+    // Case: (param) => ...
+    if (_peekTokenIs(TokenType.arrow)) {
+      _nextToken(); // consume =>
+      _nextToken(); // move to expression
+      if (exp is! Identifier) {
+        _addError("expected identifier for arrow function parameter");
+        return null;
+      }
+      return _parseArrowFunctionBody(token, [exp]);
+    }
+
     return exp;
+  }
+
+  Expression _parseArrowFunctionBody(Token token, List<Identifier> params) {
+    final expr = _parseExpression(_lowest);
+    // Synthetic block with return
+    final returnStmt = ReturnStatement(token, expr);
+    final body = BlockStatement(token, [returnStmt]);
+    return FunctionLiteral(token, params, body);
   }
 
   Expression? _parseArrayLiteral() {
@@ -550,8 +649,24 @@ class Parser {
     if (!_expectPeek(TokenType.lparen)) return null;
     final parameters = _parseFunctionParameters();
     if (parameters == null) return null;
-    if (!_expectPeek(TokenType.lbrace)) return null;
-    final body = _parseBlockStatement();
+    BlockStatement body;
+
+    if (_peekTokenIs(TokenType.arrow)) {
+      _nextToken(); // consume arrow
+      _nextToken(); // move to expression start
+
+      final expr = _parseExpression(_lowest);
+      if (expr == null) return null;
+
+      // Creating a synthetic ReturnStatement for the arrow function body
+      final returnStmt = ReturnStatement(_curToken, expr);
+      body = BlockStatement(_curToken);
+      body.statements.add(returnStmt);
+    } else {
+      if (!_expectPeek(TokenType.lbrace)) return null;
+      body = _parseBlockStatement();
+    }
+
     return FunctionLiteral(token, parameters, body);
   }
 
@@ -602,7 +717,7 @@ class Parser {
     // Right-associative: pass precedence check by not incrementing or using same
     final right = _parseExpression(precedence); 
     if (right == null) return null;
-    return BinaryExpr(token, left, "=", right);
+    return Assignment(token, left, right);
   }
 
   Expression? _parsePropertyAccess(Expression left) {

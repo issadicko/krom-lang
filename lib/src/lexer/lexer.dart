@@ -60,6 +60,9 @@ class Lexer {
         if (_peekChar() == '=') {
           _readChar();
           tok = Token(TokenType.eq, '==', line: _line, column: startColumn);
+        } else if (_peekChar() == '>') {
+          _readChar();
+          tok = Token(TokenType.arrow, '=>', line: _line, column: startColumn);
         } else {
           tok = Token(TokenType.assign, '=', line: _line, column: startColumn);
         }
@@ -213,24 +216,19 @@ class Lexer {
     _readChar(); // skip opening delimiter
     final buffer = StringBuffer();
     var isTemplate = false;
-    while (_ch != delimiter && _ch != '') {
+    var braceDepth = 0;
+
+    while (_ch != '' && (braceDepth > 0 || _ch != delimiter)) { // Run until delimiter at depth 0 or EOF
       if (_ch == '\\') {
         _readChar();
         switch (_ch) {
-          case 'n':
-            buffer.write('\n');
-          case 't':
-            buffer.write('\t');
-          case 'r':
-            buffer.write('\r');
-          case '"':
-            buffer.write('"');
-          case "'":
-            buffer.write("'");
-          case '\\':
-            buffer.write('\\');
-          case '\$':
-            buffer.write('\$');
+          case 'n': buffer.write('\n');
+          case 't': buffer.write('\t');
+          case 'r': buffer.write('\r');
+          case '"': buffer.write('"');
+          case "'": buffer.write("'");
+          case '\\': buffer.write('\\');
+          case '\$': buffer.write('\$');
           default:
             buffer.write('\\');
             buffer.write(_ch);
@@ -238,9 +236,35 @@ class Lexer {
       } else if (_ch == '\$' && _peekChar() == '{') {
         // Template expression detected
         isTemplate = true;
+        braceDepth++;
         buffer.write('\$');
         buffer.write('{');
         _readChar(); // consume $
+      } else if (braceDepth > 0) {
+          // Inside interpolation
+          if (_ch == '{') {
+              braceDepth++;
+              buffer.write(_ch);
+          } else if (_ch == '}') {
+              braceDepth--;
+              buffer.write(_ch);
+          } else if (_ch == '"' || _ch == "'") {
+              // Skip string inside interpolation
+              final quote = _ch;
+              buffer.write(quote);
+              _readChar();
+              while (_ch != '' && _ch != quote) {
+                  if (_ch == '\\') {
+                      buffer.write('\\');
+                      _readChar();
+                  }
+                  buffer.write(_ch);
+                  _readChar();
+              }
+              buffer.write(_ch); // closing quote
+          } else {
+              buffer.write(_ch);
+          }
       } else {
         buffer.write(_ch);
       }

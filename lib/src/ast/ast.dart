@@ -50,12 +50,13 @@ class VarDecl extends Statement {
 }
 
 /// Assignment: x = expr
-class Assignment extends Statement {
+/// Assignment: left = expr
+class Assignment extends Expression {
   final Token token;
-  final Identifier name;
+  final Expression left;
   final Expression value;
 
-  Assignment(this.token, this.name, this.value);
+  Assignment(this.token, this.left, this.value);
 
   @override
   String tokenLiteral() => token.literal;

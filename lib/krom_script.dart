@@ -13,12 +13,20 @@
 /// ```
 library krom_script;
 
+import 'src/interpreter/environment.dart';
+import 'src/interpreter/values.dart'; // import KromBindable
+
+// Exports
 export 'src/token/token.dart';
 export 'src/lexer/lexer.dart';
 export 'src/ast/ast.dart';
+export 'src/ast/ast_printer.dart';
 export 'src/parser/parser.dart';
 export 'src/interpreter/interpreter.dart';
+export 'src/interpreter/environment.dart'; // Export for custom execution environments
+export 'src/interpreter/values.dart'; // Export KromBindable, ExecutionResult
 export 'src/natives/natives.dart';
+export 'src/errors/krom_exception.dart';
 
 // Mini-App Engine exports
 export 'src/engine/krom_engine.dart';
@@ -31,6 +39,7 @@ import 'src/parser/parser.dart';
 import 'src/interpreter/interpreter.dart';
 import 'src/natives/natives.dart';
 import 'src/cache/ast_cache.dart';
+import 'src/errors/krom_exception.dart'; // Add this import
 
 /// Result of script execution.
 class ScriptResult {
@@ -139,8 +148,10 @@ class KromScript {
     try {
       final value = interpreter.eval(program);
       return ScriptResult(value: value, output: interpreter.getOutput());
-    } catch (e) {
+    } on KromException catch (e) {
       return ScriptResult(errors: [e.toString()]);
+    } catch (e) {
+      return ScriptResult(errors: ['Unexpected error: $e']);
     }
   }
 }

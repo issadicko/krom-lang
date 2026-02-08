@@ -38,6 +38,7 @@ enum TokenType {
   // Null-safety
   safeAccess, // ?.
   elvis, // ?:
+  arrow, // =>
 
   // Delimiters
   comma, // ,
@@ -96,6 +97,7 @@ enum TokenType {
         TokenType.gtEq,
         TokenType.safeAccess,
         TokenType.elvis,
+        TokenType.arrow,
         TokenType.dot,
         TokenType.comma,
       }.contains(this);

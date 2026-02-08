@@ -56,6 +56,62 @@ void main() {
         final fn = engine.getVariable('add');
         expect(fn, isA<FunctionValue>());
       });
+
+      test('should work with enableOptimizer flag', () async {
+        // Optimizer should fold constants at compile time
+        // Variables must be used in a function to survive Dead Code Elimination
+        final result = await engine.load('''
+          let x = 1 + 2 + 3  // Should be folded to 6
+          let y = "Hello, " + "World"  // Should be folded to "Hello, World"
+          
+          let getX = fn() { return x }
+          let getY = fn() { return y }
+        ''', enableOptimizer: true);
+
+        expect(result.success, isTrue);
+        // Variables that are used in functions should survive DCE
+        expect(engine.getVariable('x'), equals(6.0));
+        expect(engine.getVariable('y'), equals('Hello, World'));
+      });
+
+      test('should resolve closures correctly with static resolution', () async {
+        // This tests that the Resolver correctly handles closures
+        await engine.load('''
+          let makeCounter = fn() {
+            let count = 0
+            return fn() {
+              count = count + 1
+              return count
+            }
+          }
+          let counter = makeCounter()
+        ''');
+
+        // Each call should increment and return the count
+        final r1 = await engine.invoke('counter');
+        expect(r1.value, equals(1.0));
+        
+        final r2 = await engine.invoke('counter');
+        expect(r2.value, equals(2.0));
+        
+        final r3 = await engine.invoke('counter');
+        expect(r3.value, equals(3.0));
+      });
+
+      test('should handle nested function parameters correctly', () async {
+        // This tests that function parameters are resolved at correct depth
+        await engine.load('''
+          let double = fn(x) {
+            return x * 2
+          }
+          let apply = fn(f, val) {
+            return f(val)
+          }
+        ''');
+
+        final result = await engine.invoke('apply', [engine.getVariable('double'), 5.0]);
+        expect(result.value, equals(10.0));
+      });
     });
 
     group('invoke()', () {
@@ -150,14 +206,15 @@ void main() {
         expect(result, equals(10.0));
       });
 
-      test('should throw if engine not loaded', () {
-        expect(() => engine.invokeSync('test'), throwsStateError);
+      test('KSEngine invokeSync() should throw if engine not loaded', () {
+        final engine = KSEngine();
+        expect(() => engine.invokeSync('test'), throwsA(isA<KromRuntimeError>()));
       });
 
-      test('should throw if function not found', () async {
-        await engine.load('let x = 1');
-
-        expect(() => engine.invokeSync('missing'), throwsArgumentError);
+      test('KSEngine invokeSync() should throw if function not found', () async {
+        final engine = KSEngine();
+        await engine.load('');
+        expect(() => engine.invokeSync('missing'), throwsA(isA<KromRuntimeError>()));
       });
     });
 

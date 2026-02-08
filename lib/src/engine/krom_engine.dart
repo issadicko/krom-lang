@@ -8,8 +8,13 @@ import '../lexer/lexer.dart';
 import '../parser/parser.dart';
 import '../ast/ast.dart';
 import '../interpreter/interpreter.dart';
+import '../interpreter/environment.dart';
+import '../interpreter/values.dart';
 import '../natives/natives.dart';
 import '../reactive/rx.dart';
+import '../errors/krom_exception.dart';
+import '../resolver/resolver.dart';
+import '../optimizer/optimizer.dart';
 import 'krom_engine_result.dart';
 
 export 'krom_engine_result.dart';
@@ -94,21 +99,30 @@ class KSEngine {
   /// This parses the source code and executes the global scope
   /// to initialize variables and function definitions.
   ///
+  /// [enableOptimizer] - If true, applies constant folding optimization.
+  ///
   /// Call this once before using [invoke].
-  Future<KSEngineResult> load(String source) async {
+  Future<KSEngineResult> load(String source, {bool enableOptimizer = false}) async {
     // Reset state
     _loaded = false;
     _program = null;
 
-    // Parse the source
+    print('>>> KSEngine.load() called at ${DateTime.now()} - Resolver is DISABLED <<<');
     final lexer = Lexer(source);
     final parser = Parser(lexer);
-    _program = parser.parseProgram();
+    var program = parser.parseProgram();
 
     // Check for parse errors
     if (parser.errors().isNotEmpty) {
       return KSEngineResult.error(parser.errors());
     }
+
+    // Apply constant folding optimization if enabled
+    if (enableOptimizer) {
+      program = Optimizer().optimize(program);
+    }
+
+    _program = program;
 
     // Create fresh environment and interpreter
     _env = Environment();
@@ -159,6 +173,10 @@ class KSEngine {
       _env!.set(name, value);
     });
 
+    // Resolve static scopes for optimized variable lookup
+    // final resolver = Resolver(_interpreter!);
+    // resolver.resolve(_program!);
+
     // Execute global scope to initialize state
     try {
       _interpreter!.eval(_program!);
@@ -187,19 +205,20 @@ class KSEngine {
   /// Throws if the engine is not loaded or the function doesn't exist.
   Object? invokeSync(String funcName, [List<Object?> args = const []]) {
     if (!_loaded) {
-      throw StateError('Engine not loaded. Call load() first.');
+      throw KromRuntimeError('Engine not loaded. Call load() first.');
     }
 
     final (funcValue, found) = _env!.get(funcName);
 
     if (!found) {
-      throw ArgumentError('Function "$funcName" not found');
+      throw KromRuntimeError('Function "$funcName" not found');
     }
 
     if (funcValue is! FunctionValue) {
-      throw ArgumentError('"$funcName" is not a function');
+      throw KromRuntimeError('"$funcName" is not a function');
     }
 
+    // callFunction can throw KromRuntimeError, which is what we want to propagate
     return _interpreter!.callFunction(funcValue, args);
   }
 
@@ -225,8 +244,10 @@ class KSEngine {
         value: result,
         output: _interpreter!.getOutput(),
       );
-    } catch (e) {
+    } on KromException catch (e) {
       return KSEngineResult.error([e.toString()]);
+    } catch (e) {
+      return KSEngineResult.error(['Unexpected error: $e']);
     }
   }
 

@@ -5,148 +5,17 @@ import 'dart:developer';
 
 import '../ast/ast.dart';
 import '../natives/natives.dart';
+import '../errors/krom_exception.dart';
+import '../runtime/krom_runtime_type.dart';
+import '../runtime/krom_types.dart';
+import 'environment.dart';
+import 'values.dart';
 
-/// Sentinel object to indicate that a method was not found.
-/// Used to distinguish between a method that returns null and a missing method.
-class _MethodNotFound {
-  const _MethodNotFound();
-}
 
-/// Sentinel value indicating a method was not found on a KromBindable object.
-const methodNotFound = _MethodNotFound();
-
-/// Interface for objects that can be bound to KromScript.
-///
-/// Implement this interface on Dart classes you want to expose to
-/// KromScript via the `.bind()` API.
-///
-/// Example:
-/// ```dart
-/// class User implements KromBindable {
-///   final String name;
-///   User(this.name);
-///
-///   @override
-///   Object? getProperty(String name) {
-///     if (name == 'name') return this.name;
-///     return null;
-///   }
-///
-///   @override
-///   Object? callMethod(String name, List<Object?> args) {
-///     if (name == 'sayHello') return "Hello, I'm ${this.name}";
-///     return null;
-///   }
-/// }
-/// ```
-abstract class KromBindable {
-  /// Get a property value by name.
-  /// Returns null if the property doesn't exist.
-  Object? getProperty(String name);
-
-  /// Call a method by name with arguments.
-  /// Returns [methodNotFound] if the method doesn't exist.
-  /// Can return null if the method exists and returns null.
-  Object? callMethod(String name, List<Object?> args);
-}
-
-/// Environment holds variable bindings.
-class Environment {
-  final Environment? _outer;
-  final Map<String, Object?> _store = {};
-  final List<String> _output = [];
-
-  Environment([this._outer]);
-
-  (Object?, bool) get(String name) {
-    if (_store.containsKey(name)) {
-      return (_store[name], true);
-    }
-    return _outer?.get(name) ?? (null, false);
-  }
-
-  void set(String name, Object? value) {
-    _store[name] = value;
-  }
-
-  /// Updates a variable in the scope where it was originally defined.
-  ///
-  /// Searches up the scope chain to find where the variable exists,
-  /// then updates it there. If not found, sets it in the current scope.
-  bool update(String name, Object? value) {
-    if (_store.containsKey(name)) {
-      _store[name] = value;
-      return true;
-    }
-    if (_outer != null) {
-      return _outer!.update(name, value);
-    }
-    // Variable not found in any scope, set in current scope
-    _store[name] = value;
-    return false;
-  }
-
-  void addOutput(String line) {
-    _output.add(line);
-  }
-
-  List<String> getOutput() => List.unmodifiable(_output);
-
-  /// Clears the output buffer.
-  void clearOutput() {
-    _output.clear();
-  }
-
-  /// Exports all variables from all scopes to a Map.
-  ///
-  /// Variables in inner scopes shadow those in outer scopes.
-  Map<String, Object?> toMap() {
-    final result = <String, Object?>{};
-    // First add outer scope variables (if any)
-    if (_outer != null) {
-      result.addAll(_outer!.toMap());
-    }
-    // Then add current scope (shadows outer)
-    result.addAll(_store);
-    return result;
-  }
-}
-
-/// Wrapper to signal early return from evaluation.
-class ReturnValue {
-  final Object? value;
-  ReturnValue(this.value);
-}
-
-/// Function value (user defined).
-class FunctionValue {
-  final List<Identifier> parameters;
-  final BlockStatement body;
-  final Environment env;
-
-  FunctionValue(this.parameters, this.body, this.env);
-}
-
-/// Native function wrapper.
-class NativeFunctionValue {
-  final NativeFunc fn;
-  NativeFunctionValue(this.fn);
-}
-
-/// Exception thrown when max operations is exceeded.
-class MaxOperationsExceeded implements Exception {
-  @override
-  String toString() => 'max operations exceeded';
-}
-
-/// Exception thrown when execution timeout is exceeded.
-class TimeoutException implements Exception {
-  @override
-  String toString() => 'execution timeout';
-}
+// Removed extracted classes (Environment, Values, etc.)
 
 /// Interpreter evaluates AST nodes.
-class Interpreter {
+class Interpreter implements KromFunctionInvoker {
   Environment _env;
   final NativeFunctions _natives;
   int _opCount = 0;
@@ -155,7 +24,72 @@ class Interpreter {
 
   Interpreter({Environment? env, NativeFunctions? natives})
       : _env = env ?? Environment(),
-        _natives = natives ?? NativeFunctions.shared;
+        _natives = natives ?? NativeFunctions.shared {
+     _registerTypes();
+  }
+  
+  void _registerTypes() {
+    final registry = TypeRegistry.instance;
+    // Only register if not already there to avoid dupes if singleton shared?
+    // Registry is singleton, so we should register once. 
+    // But since keys are types, overwriting is fine or checking.
+    // Let's just register.
+    registry.register<List>(KromListType());
+    registry.register<Map>(KromMapType());
+    registry.register<String>(KromStringType());
+  }
+
+  final Map<Expression, int> _locals = {};
+
+  void resolve(Expression expr, int depth) {
+    _locals[expr] = depth;
+  }
+  
+  // ignore: unused_element - Infrastructure for future optimized variable lookup
+  Object? _lookupVariable(String name, Expression expr) {
+    final distance = _locals[expr];
+    if (distance != null) {
+      return _env.getAt(distance, name);
+    } else {
+      // If not resolved, use standard lookup (walks scope chain)
+      // This handles globals, natives, and any unresolved variables
+      final (value, found) = _env.get(name);
+      if (found) return value;
+      return null; // Let caller handle undefined
+    }
+  }
+
+
+
+  @override
+  Object? applyFunction(Object? fn, List<Object?> args) {
+    return _applyFunction(fn, args);
+  }
+
+
+
+  Object? _evalPropertyAccess(PropertyAccessExpr expr) {
+    final obj = _evalExpression(expr.obj);
+    if (obj == null) {
+      throw KromRuntimeError("cannot access property '${expr.property.value}' on null");
+    }
+
+    final prop = expr.property.value;
+    
+    // Delegate to TypeRegistry
+    final handler = TypeRegistry.instance.getHandler(obj);
+    if (handler != null) {
+        final result = handler.getProperty(obj, prop, this);
+        if (result != null) return result;
+        
+        // If property not found, handler returns null.
+        // We could also try callMethod if we wanted to support method calls directly here,
+        // but getProperty usually returns the function to be called.
+    }
+
+    // Fallback to bindings/reflection
+    return _reflectivePropertyAccess(obj, prop);
+  }
 
   factory Interpreter.withVariables(Map<String, Object?> variables) {
     final env = Environment();
@@ -180,7 +114,7 @@ class Interpreter {
     if (_maxOps > 0) {
       _opCount++;
       if (_opCount > _maxOps) {
-        throw MaxOperationsExceeded();
+        throw KromResourceError('max operations exceeded');
       }
     }
   }
@@ -189,7 +123,7 @@ class Interpreter {
   void _checkDeadline() {
     if (_deadline > 0) {
       if (DateTime.now().millisecondsSinceEpoch > _deadline) {
-        throw TimeoutException();
+        throw KromResourceError('execution timeout');
       }
     }
   }
@@ -235,11 +169,7 @@ class Interpreter {
         final value = _evalExpression(stmt.value);
         _env.set(stmt.name.value, value);
         return value;
-      case Assignment():
-        final value = _evalExpression(stmt.value);
-        // Use update to modify variable in its original scope
-        _env.update(stmt.name.value, value);
-        return value;
+
       case ExpressionStatement():
         return _evalExpression(stmt.expression);
       case IfStatement():
@@ -363,6 +293,13 @@ class Interpreter {
       case NullLiteral():
         return null;
       case Identifier():
+        // Use optimized lookup if resolver has run
+        if (_locals.containsKey(expr)) {
+          final value = _lookupVariable(expr.value, expr);
+          if (value != null) return value;
+          // If null, still check natives before erroring
+        }
+        // Standard lookup (walks scope chain)
         final (value, found) = _env.get(expr.value);
         if (found) return value;
 
@@ -390,6 +327,8 @@ class Interpreter {
         return expr.pairs.map((k, v) => MapEntry(k, _evalExpression(v)));
       case IndexExpr():
         return _evalIndexExpression(expr);
+      case Assignment():
+        return _evalAssignment(expr.left, expr.value);
     }
   }
 
@@ -541,117 +480,6 @@ class Interpreter {
     return left ?? _evalExpression(expr.defaultValue);
   }
 
-  Object? _evalPropertyAccess(PropertyAccessExpr expr) {
-    final obj = _evalExpression(expr.obj);
-    if (obj == null) {
-      throw Exception("cannot access property '${expr.property.value}' on null");
-    }
-
-    final prop = expr.property.value;
-
-    // First check for map access (existing behavior)
-    if (obj is Map) {
-      return obj[prop];
-    }
-    
-    // Check for List access
-    if (obj is List) {
-      final listObj = obj;
-      
-      if (prop == 'size') {
-        return NativeFunctionValue((args) => listObj.length.toDouble());
-      }
-      if (prop == 'length') {
-        return listObj.length.toDouble();
-      }
-      if (prop == 'add') {
-        return NativeFunctionValue((args) {
-           listObj.add(args[0]);
-           return null;
-        });
-      }
-      if (prop == 'isEmpty') {
-        return listObj.isEmpty;
-      }
-      if (prop == 'isNotEmpty') {
-        return listObj.isNotEmpty;
-      }
-      if (prop == 'contains') {
-        return NativeFunctionValue((args) {
-           return listObj.contains(args[0]);
-        });
-      }
-      if (prop == 'clear') {
-         return NativeFunctionValue((args) {
-            listObj.clear();
-            return null;
-         });
-      }
-      
-      // -- Higher Order Methods --
-      
-      if (prop == 'map') {
-        return NativeFunctionValue((args) {
-          if (args.isEmpty) return [];
-          final fn = args[0];
-          return listObj.asMap().entries.map((e) => 
-            _applyFunction(fn, [e.value, e.key.toDouble()])
-          ).toList();
-        });
-      }
-
-      if (prop == 'filter' || prop == 'where') {
-        return NativeFunctionValue((args) {
-          if (args.isEmpty) return [];
-          final fn = args[0];
-          final result = <Object?>[];
-          for (var i = 0; i < listObj.length; i++) {
-            if (_isTruthy(_applyFunction(fn, [listObj[i], i.toDouble()]))) {
-              result.add(listObj[i]);
-            }
-          }
-          return result;
-        });
-      }
-
-      if (prop == 'forEach') {
-        return NativeFunctionValue((args) {
-          if (args.isEmpty) return null;
-          final fn = args[0];
-          for (var i = 0; i < listObj.length; i++) {
-            _applyFunction(fn, [listObj[i], i.toDouble()]);
-          }
-          return null;
-        });
-      }
-
-      if (prop == 'any') {
-        return NativeFunctionValue((args) {
-          if (args.isEmpty) return false;
-          final fn = args[0];
-          for (var i = 0; i < listObj.length; i++) {
-            if (_isTruthy(_applyFunction(fn, [listObj[i], i.toDouble()]))) return true;
-          }
-          return false;
-        });
-      }
-
-      if (prop == 'every') {
-        return NativeFunctionValue((args) {
-          if (args.isEmpty) return true;
-          final fn = args[0];
-          for (var i = 0; i < listObj.length; i++) {
-            if (!_isTruthy(_applyFunction(fn, [listObj[i], i.toDouble()]))) return false;
-          }
-          return true;
-        });
-      }
-    }
-
-    // Use reflection to access methods and fields on Dart objects
-    return _reflectivePropertyAccess(obj, prop);
-  }
-
   Object? _evalCallExpr(CallExpr expr) {
     final funcExpr = expr.function;
 
@@ -783,8 +611,9 @@ class Interpreter {
       return fn.fn(args);
     }
 
-    throw Exception('not a function: ${fn?.runtimeType}');
+    throw KromRuntimeError('not a function: ${fn?.runtimeType}');
   }
+
 
   bool _isTruthy(Object? value) {
     if (value == null) return false;
@@ -819,7 +648,8 @@ class Interpreter {
     // Otherwise return a callable wrapper for method invocation
     return NativeFunctionValue((args) {
       final result = obj.callMethod(propertyName, args);
-      if (result is _MethodNotFound) {
+      // Check sentinel by identity or value
+      if (result == methodNotFound) {
         throw Exception(
             "method or property '$propertyName' not found on ${obj.runtimeType}");
       }

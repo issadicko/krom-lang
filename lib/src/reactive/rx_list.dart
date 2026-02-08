@@ -1,4 +1,4 @@
-import '../interpreter/interpreter.dart';
+import '../interpreter/values.dart'; // import KromBindable
 import 'rx_notifier.dart';
 import 'rx.dart';
 

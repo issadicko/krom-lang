@@ -1,6 +1,6 @@
 import 'rx.dart';
 import 'rx_notifier.dart';
-import '../interpreter/interpreter.dart';
+import '../interpreter/values.dart'; // import KromBindable
 
 /// A computed value that automatically recalculates when dependencies change.
 ///
