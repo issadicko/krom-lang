@@ -73,11 +73,7 @@ class KSEngine {
 
   // ... (existing code)
 
-
-
   // ...
-
-
 
   /// Whether the engine is loaded and ready for invocation.
   bool get isLoaded => _loaded;
@@ -87,12 +83,10 @@ class KSEngine {
     _natives = NativeFunctions.withBuiltins();
     // Register Obs function for creating reactive variables
     _natives!.register('Obs', createObs);
-    
+
     // Register Computed for derived values (registered later when interpreter is available)
     // The actual Computed registration happens in load() after interpreter is created
   }
-
-
 
   /// Loads and initializes a script.
   ///
@@ -102,12 +96,12 @@ class KSEngine {
   /// [enableOptimizer] - If true, applies constant folding optimization.
   ///
   /// Call this once before using [invoke].
-  Future<KSEngineResult> load(String source, {bool enableOptimizer = false}) async {
+  Future<KSEngineResult> load(String source,
+      {bool enableOptimizer = false}) async {
     // Reset state
     _loaded = false;
     _program = null;
 
-    print('>>> KSEngine.load() called at ${DateTime.now()} - Resolver is DISABLED <<<');
     final lexer = Lexer(source);
     final parser = Parser(lexer);
     var program = parser.parseProgram();
@@ -127,7 +121,7 @@ class KSEngine {
     // Create fresh environment and interpreter
     _env = Environment();
     _interpreter = Interpreter(env: _env!, natives: _natives!);
-    
+
     // Register Computed - needs interpreter reference
     _env!.set('Computed', NativeFunctionValue((args) {
       if (args.isEmpty || args[0] is! FunctionValue) {
@@ -136,7 +130,7 @@ class KSEngine {
       final fn = args[0] as FunctionValue;
       return Computed(() => _interpreter!.callFunction(fn, []));
     }));
-    
+
     // Register watch - observes an Rx and calls callback on change
     _env!.set('watch', NativeFunctionValue((args) {
       if (args.length < 2) {
@@ -144,25 +138,25 @@ class KSEngine {
       }
       final rx = args[0];
       final callback = args[1];
-      
+
       if (rx is! Rx) {
         throw Exception('First argument to watch must be an Obs or Computed');
       }
       if (callback is! FunctionValue) {
         throw Exception('Second argument to watch must be a function');
       }
-      
+
       Object? previousValue = rx.value;
-      
+
       rx.addListener(() {
         final newValue = rx.value;
         _interpreter!.callFunction(callback, [newValue, previousValue]);
         previousValue = newValue;
       });
-      
+
       return null;
     }));
-    
+
     // Apply bindings
     _bindings.forEach((name, value) {
       _env!.set(name, value);
@@ -196,7 +190,8 @@ class KSEngine {
   /// [args] - Optional arguments to pass to the function.
   ///
   /// Returns a [KSEngineResult] with the function's return value.
-  Future<KSEngineResult> invoke(String funcName, [List<Object?> args = const []]) async {
+  Future<KSEngineResult> invoke(String funcName,
+      [List<Object?> args = const []]) async {
     return invokeSynchronized(funcName, args);
   }
 
@@ -222,7 +217,8 @@ class KSEngine {
     return _interpreter!.callFunction(funcValue, args);
   }
 
-  KSEngineResult invokeSynchronized(String funcName, [List<Object?> args = const []]){
+  KSEngineResult invokeSynchronized(String funcName,
+      [List<Object?> args = const []]) {
     if (!_loaded) {
       return KSEngineResult.error(['Engine not loaded. Call load() first.']);
     }
@@ -250,7 +246,6 @@ class KSEngine {
       return KSEngineResult.error(['Unexpected error: $e']);
     }
   }
-
 
   /// Gets a variable from the script context.
   ///
