@@ -173,7 +173,9 @@ class ASTPrinter {
     } else if (expr is BooleanLiteral) {
       _write(expr.value.toString());
     } else if (expr is NullLiteral) {
-      _write('nil');
+      // KromScript's null keyword is `null` (there is no `nil`); printing
+      // `nil` made the optimizer's round-trip emit an undefined identifier.
+      _write('null');
     } else if (expr is ArrayLiteral) {
       _write('[');
       for (var i = 0; i < expr.elements.length; i++) {
