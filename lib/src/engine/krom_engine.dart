@@ -16,8 +16,10 @@ import '../errors/krom_exception.dart';
 import '../resolver/resolver.dart';
 import '../optimizer/optimizer.dart';
 import 'krom_engine_result.dart';
+import 'execution_limits.dart';
 
 export 'krom_engine_result.dart';
+export 'execution_limits.dart';
 
 /// Persistent script engine for mini-app execution.
 ///
@@ -65,6 +67,32 @@ class KSEngine {
 
   /// The bindings to apply when loading a script.
   final Map<String, KromBindable> _bindings = {};
+
+  /// The op-budget / deadline guard applied to every execution. Safe by
+  /// default (enabled, generous bounds); set [ExecutionLimits.unlimited] to
+  /// disable for trusted code.
+  ExecutionLimits _limits = const ExecutionLimits();
+
+  ExecutionLimits get executionLimits => _limits;
+  set executionLimits(ExecutionLimits limits) => _limits = limits;
+
+  /// Applies [executionLimits] to the interpreter before each run: resets the
+  /// per-execution operation counter and sets a fresh wall-clock deadline, so a
+  /// runaway `build()`/callback/loop throws instead of hanging the caller.
+  void _applyLimits() {
+    final i = _interpreter;
+    if (i == null) return;
+    if (_limits.enabled) {
+      i.setMaxOperations(_limits.maxOperations);
+      i.setDeadline(_limits.deadline > Duration.zero
+          ? DateTime.now().millisecondsSinceEpoch +
+              _limits.deadline.inMilliseconds
+          : 0);
+    } else {
+      i.setMaxOperations(0);
+      i.setDeadline(0);
+    }
+  }
 
   /// Creates a new KSEngine instance.
   KSEngine() {
@@ -173,6 +201,7 @@ class KSEngine {
 
     // Execute global scope to initialize state
     try {
+      _applyLimits();
       _interpreter!.eval(_program!);
       _loaded = true;
       return KSEngineResult.success(output: _interpreter!.getOutput());
@@ -214,6 +243,7 @@ class KSEngine {
     }
 
     // callFunction can throw KromRuntimeError, which is what we want to propagate
+    _applyLimits();
     return _interpreter!.callFunction(funcValue, args);
   }
 
@@ -235,6 +265,7 @@ class KSEngine {
     }
 
     try {
+      _applyLimits();
       final result = _interpreter!.callFunction(funcValue, args);
       return KSEngineResult.success(
         value: result,
