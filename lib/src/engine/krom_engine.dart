@@ -76,6 +76,13 @@ class KSEngine {
   ExecutionLimits get executionLimits => _limits;
   set executionLimits(ExecutionLimits limits) => _limits = limits;
 
+  /// Operations consumed by the most recent execution — for host instrumentation
+  /// (e.g. a dev preview's execution-budget meter). 0 before the first run.
+  int get lastOpsUsed => _interpreter?.lastOpsUsed ?? 0;
+
+  /// The current operation budget (0 = unlimited).
+  int get maxOperations => _interpreter?.maxOperations ?? 0;
+
   /// Applies [executionLimits] to the interpreter before each run: resets the
   /// per-execution operation counter and sets a fresh wall-clock deadline, so a
   /// runaway `build()`/callback/loop throws instead of hanging the caller.
