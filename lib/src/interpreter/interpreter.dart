@@ -109,6 +109,13 @@ class Interpreter implements KromFunctionInvoker {
     _deadline = deadline;
   }
 
+  /// Operations consumed by the most recent execution — for host instrumentation
+  /// (e.g. a dev preview's execution-budget meter). Reset at the start of each run.
+  int get lastOpsUsed => _opCount;
+
+  /// The current operation budget (0 = unlimited).
+  int get maxOperations => _maxOps;
+
   /// Checks the operation limit and throws if exceeded.
   void _checkOperationLimit() {
     if (_maxOps > 0) {
