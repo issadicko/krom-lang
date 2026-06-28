@@ -489,6 +489,11 @@ class Interpreter implements KromFunctionInvoker {
       for (final arg in args) {
         final output = arg?.toString() ?? 'null';
         log(output, name: 'KromScript');
+        // Also emit through Dart's print so embedders that capture print()
+        // (e.g. the dev preview's console panel, which runs the app in a Zone
+        // with a print handler) surface the mini-app's output.
+        // ignore: avoid_print
+        print(output);
         _env.addOutput(output);
       }
       return null;
