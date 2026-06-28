@@ -83,6 +83,33 @@ class KSEngine {
   /// The current operation budget (0 = unlimited).
   int get maxOperations => _interpreter?.maxOperations ?? 0;
 
+  /// Snapshot of the mini-app's reactive variables (`Obs`/`List`) keyed by name,
+  /// with their current values — for host inspection (e.g. a state inspector).
+  Map<String, Object?> reactiveState() {
+    final env = _env;
+    if (env == null) return const {};
+    final out = <String, Object?>{};
+    env.toMap().forEach((name, value) {
+      if (value is Rx) out[name] = value.value;
+    });
+    return out;
+  }
+
+  /// Sets a reactive variable's value (triggering listeners/rebuild). Returns
+  /// false if [name] is unknown, not reactive, or [value] is the wrong type.
+  bool setReactiveValue(String name, Object? value) {
+    final env = _env;
+    if (env == null) return false;
+    final (current, found) = env.get(name);
+    if (!found || current is! Rx) return false;
+    try {
+      current.value = value;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Applies [executionLimits] to the interpreter before each run: resets the
   /// per-execution operation counter and sets a fresh wall-clock deadline, so a
   /// runaway `build()`/callback/loop throws instead of hanging the caller.
