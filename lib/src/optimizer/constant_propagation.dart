@@ -127,18 +127,34 @@ class ConstantPropagation {
       );
       
     } else if (stmt is WhileStatement) {
-       // Loop bodies execute multiple times. Constants from outside are safe to read.
-       // But if loop modifies a variable, it is NOT constant inside the loop (after first iter).
-       // Safe approach: Invalidate anything assigned in the loop body BEFORE processing body.
-       // Then process body.
-       
+       // A variable mutated inside the loop is NOT constant for the loop's
+       // condition or body (it would otherwise keep its pre-loop value forever,
+       // e.g. `while (i < n)` folding to `while (0 < n)` -> infinite loop).
+       // Invalidate everything assigned in the condition or body BEFORE
+       // optimizing either.
+       final assigned = <String>{};
+       _scanExpr(stmt.condition, assigned);
+       _scanStmt(stmt.body, assigned);
+       for (final name in assigned) {
+         _invalidateConstant(name);
+       }
+
        return WhileStatement(
          stmt.token,
          _optimizeExpression(stmt.condition),
          _optimizeStatement(stmt.body) as BlockStatement
        );
-       
+
     } else if (stmt is ForStatement) {
+        // The loop variable is rebound every iteration, and the body may mutate
+        // outer variables — none of those are constant across the loop.
+        final assigned = <String>{stmt.variable.value};
+        _scanExpr(stmt.iterable, assigned);
+        _scanStmt(stmt.body, assigned);
+        for (final name in assigned) {
+          _invalidateConstant(name);
+        }
+
         return ForStatement(
             stmt.token,
             stmt.variable,
@@ -232,10 +248,83 @@ class ConstantPropagation {
   }
   
   bool _isLiteral(Expression expr) {
-    return expr is NumberLiteral || 
-           expr is StringLiteral || 
-           expr is BooleanLiteral || 
+    return expr is NumberLiteral ||
+           expr is StringLiteral ||
+           expr is BooleanLiteral ||
            expr is NullLiteral;
+  }
+
+  /// Collects, into [out], the name of every variable that is an assignment
+  /// target (or a for-loop variable) anywhere within [stmt] — including inside
+  /// nested function literals, which can mutate captured outer variables.
+  void _scanStmt(Statement stmt, Set<String> out) {
+    if (stmt is BlockStatement) {
+      for (final s in stmt.statements) {
+        _scanStmt(s, out);
+      }
+    } else if (stmt is IfStatement) {
+      _scanExpr(stmt.condition, out);
+      _scanStmt(stmt.consequence, out);
+      if (stmt.alternative != null) _scanStmt(stmt.alternative!, out);
+    } else if (stmt is WhileStatement) {
+      _scanExpr(stmt.condition, out);
+      _scanStmt(stmt.body, out);
+    } else if (stmt is ForStatement) {
+      out.add(stmt.variable.value);
+      _scanExpr(stmt.iterable, out);
+      _scanStmt(stmt.body, out);
+    } else if (stmt is ExpressionStatement) {
+      _scanExpr(stmt.expression, out);
+    } else if (stmt is ReturnStatement) {
+      if (stmt.value != null) _scanExpr(stmt.value!, out);
+    } else if (stmt is VarDecl) {
+      _scanExpr(stmt.value, out);
+    } else if (stmt is FunctionDeclaration) {
+      _scanStmt(stmt.body, out);
+    }
+  }
+
+  void _scanExpr(Expression expr, Set<String> out) {
+    if (expr is Assignment) {
+      if (expr.left is Identifier) out.add((expr.left as Identifier).value);
+      _scanExpr(expr.left, out);
+      _scanExpr(expr.value, out);
+    } else if (expr is BinaryExpr) {
+      _scanExpr(expr.left, out);
+      _scanExpr(expr.right, out);
+    } else if (expr is UnaryExpr) {
+      _scanExpr(expr.right, out);
+    } else if (expr is CallExpr) {
+      _scanExpr(expr.function, out);
+      for (final a in expr.arguments) {
+        _scanExpr(a, out);
+      }
+    } else if (expr is IndexExpr) {
+      _scanExpr(expr.left, out);
+      _scanExpr(expr.index, out);
+    } else if (expr is PropertyAccessExpr) {
+      _scanExpr(expr.obj, out);
+    } else if (expr is SafeAccessExpr) {
+      _scanExpr(expr.obj, out);
+    } else if (expr is ElvisExpr) {
+      _scanExpr(expr.left, out);
+      _scanExpr(expr.defaultValue, out);
+    } else if (expr is ArrayLiteral) {
+      for (final e in expr.elements) {
+        _scanExpr(e, out);
+      }
+    } else if (expr is ObjectLiteral) {
+      for (final v in expr.pairs.values) {
+        _scanExpr(v, out);
+      }
+    } else if (expr is StringTemplate) {
+      for (final p in expr.parts) {
+        _scanExpr(p, out);
+      }
+    } else if (expr is FunctionLiteral) {
+      _scanStmt(expr.body, out);
+    }
+    // Identifiers and literals contribute no assignments.
   }
   
   Expression? _foldBinary(Expression left, String op, Expression right) {
