@@ -81,6 +81,32 @@ fn unused() { return 5 }
       expect(functions.map((f) => f.name.value).toSet(), {'build', 'main', 'init', 'dispose'});
     });
 
+    test('keeps lifecycle hooks (and what they call)', () {
+      // onInit/onShow/onHide/onDispose are invoked by the host runtime, never
+      // by KromScript, and refresh() is only reachable through them — they must
+      // not be shaken out of an optimized bundle (regression: pages stopped
+      // refreshing because onShow/onInit were dropped).
+      final source = '''
+fn refresh() { return 1 }
+fn onInit() { return refresh() }
+fn onShow() { return refresh() }
+fn onHide() { return 0 }
+fn onDispose() { return 0 }
+fn unused() { return 99 }
+fn build() { return 1 }
+''';
+      final program = parse(source);
+      final result = TreeShaker().shake(program);
+
+      final names = result.statements
+          .whereType<FunctionDeclaration>()
+          .map((f) => f.name.value)
+          .toSet();
+      expect(names, containsAll(['onInit', 'onShow', 'onHide', 'onDispose']));
+      expect(names, contains('refresh')); // reachable via the hooks
+      expect(names, isNot(contains('unused')));
+    });
+
     test('preserves non-function statements', () {
       final source = '''
 let x = 10

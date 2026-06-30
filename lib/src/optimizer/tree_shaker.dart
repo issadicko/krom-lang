@@ -10,8 +10,23 @@ class TreeShaker {
   final Set<String> _referencedCallbacks = {};
   final Map<String, FunctionDeclaration> _functionMap = {};
   
-  /// Entry point function names that should always be kept
-  static const entryPoints = {'build', 'main', 'init', 'dispose'};
+  /// Entry point function names that should always be kept.
+  ///
+  /// Includes the page lifecycle hooks (onInit/onShow/onHide/onDispose): the
+  /// host runtime invokes these by name, never KromScript code, so without
+  /// listing them here the tree-shaker would consider them unreachable and drop
+  /// them from optimized bundles — making pages never run their refresh logic.
+  static const entryPoints = {
+    'build',
+    'main',
+    'onInit',
+    'onShow',
+    'onHide',
+    'onDispose',
+    // Legacy aliases kept for backward compatibility.
+    'init',
+    'dispose',
+  };
   
   /// Common callback pattern suffixes
   static const callbackPatterns = ['Builder', 'Callback', 'Handler', 'Listener'];
