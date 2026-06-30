@@ -80,5 +80,30 @@ fn main() {
       // Should still be CallExpr
       expect(stmt.expression, isA<CallExpr>());
     });
+
+    test('does not inline a function whose return closes over a parameter', () {
+      // Regression: inlining used to substitute the body but skip nested
+      // function literals, leaving `kind` dangling (-> "undefined variable: kind"
+      // at runtime). Such a function must be left as a call instead.
+      final source = '''
+fn categoriesFor(kind) {
+  return xs.filter(fn(c) { return c.kind == kind })
+}
+fn main() {
+  let r = categoriesFor("expense")
+  return r
+}
+''';
+      final program = parse(source);
+      final result = FunctionInliner().optimize(program);
+
+      final mainFunc = result.statements[1] as FunctionDeclaration;
+      final decl = mainFunc.body.statements[0] as VarDecl;
+
+      // Must remain a call to categoriesFor — not inlined.
+      expect(decl.value, isA<CallExpr>());
+      expect((( decl.value as CallExpr).function as Identifier).value,
+          equals('categoriesFor'));
+    });
   });
 }

@@ -41,7 +41,44 @@ class FunctionInliner {
     // Only inline if body has 1 statement and it is a ReturnStatement
     if (func.body.statements.length != 1) return false;
     final stmt = func.body.statements.first;
-    return stmt is ReturnStatement && stmt.value != null;
+    if (stmt is! ReturnStatement || stmt.value == null) return false;
+    // And only if the whole return expression is something [_substitute] can
+    // fully rewrite. _substitute does NOT recurse into nested function literals,
+    // object/array literals, property access or index expressions, so a
+    // parameter used inside any of those would be left dangling after inlining
+    // (e.g. `fn f(k){ return xs.filter(fn(c){ return c == k }) }` would inline
+    // to a body where `k` is undefined). Bailing out keeps the call intact —
+    // always correct, just unoptimised.
+    return _isSafelyInlinable(stmt.value!);
+  }
+
+  /// True only if every node in [expr] is one that [_substitute] traverses and
+  /// rewrites correctly. Conservative on purpose: unknown node types make a
+  /// function non-inlinable rather than risk dropping a parameter substitution.
+  bool _isSafelyInlinable(Expression expr) {
+    if (expr is NumberLiteral ||
+        expr is StringLiteral ||
+        expr is BooleanLiteral ||
+        expr is NullLiteral ||
+        expr is Identifier) {
+      return true;
+    }
+    if (expr is UnaryExpr) {
+      return _isSafelyInlinable(expr.right);
+    }
+    if (expr is BinaryExpr) {
+      return _isSafelyInlinable(expr.left) && _isSafelyInlinable(expr.right);
+    }
+    if (expr is CallExpr) {
+      return _isSafelyInlinable(expr.function) &&
+          expr.arguments.every(_isSafelyInlinable);
+    }
+    if (expr is Assignment) {
+      return _isSafelyInlinable(expr.left) && _isSafelyInlinable(expr.value);
+    }
+    // FunctionLiteral, object/array literals, property access, index, string
+    // templates, etc. — not handled by _substitute → not safe to inline.
+    return false;
   }
   
   Statement _optimizeStatement(Statement stmt) {
