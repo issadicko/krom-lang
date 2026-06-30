@@ -70,6 +70,31 @@ fn main() {
       expect((ret.value as Identifier).value, equals('x'));
     });
 
+    test('does not fold a counter mutated inside a while loop', () {
+      // Regression: `i` was treated as the constant 0 and folded into the loop
+      // condition (`while (0 < n)` -> infinite loop) and body usages, because
+      // the loop did not invalidate variables it reassigns.
+      final source = '''
+fn main() {
+  let i = 0
+  while (i < 3) {
+    i = i + 1
+  }
+  return i
+}
+''';
+      final program = parse(source);
+      final result = ConstantPropagation().optimize(program);
+
+      final func = result.statements.first as FunctionDeclaration;
+      final whileStmt = func.body.statements[1] as WhileStatement;
+
+      // The condition must still reference `i`, not a folded `0 < 3`.
+      final cond = whileStmt.condition as BinaryExpr;
+      expect(cond.left, isA<Identifier>());
+      expect((cond.left as Identifier).value, equals('i'));
+    });
+
     test('propagates strings', () {
       final source = '''
 fn main() {
