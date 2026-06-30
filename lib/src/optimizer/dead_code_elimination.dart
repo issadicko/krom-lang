@@ -150,6 +150,16 @@ class DeadCodeElimination {
     // Returns true if the expression might have side effects (calls, assignments)
     if (expr is CallExpr) return true;
     if (expr is Assignment) return true;
+    // Property / safe access can trigger reactive dependency capture — e.g.
+    // reading `obs.value` subscribes the surrounding Obx — or a KromBindable
+    // getter with side effects. A common idiom is `let v = tick.value` purely
+    // to subscribe; its result is unused but the READ must survive DCE, so the
+    // statement is kept (as an ExpressionStatement) rather than dropped.
+    if (expr is PropertyAccessExpr) return true;
+    if (expr is SafeAccessExpr) return true;
+    if (expr is ElvisExpr) {
+      return _hasSideEffects(expr.left) || _hasSideEffects(expr.defaultValue);
+    }
     if (expr is BinaryExpr) return _hasSideEffects(expr.left) || _hasSideEffects(expr.right);
     if (expr is UnaryExpr) return _hasSideEffects(expr.right);
     if (expr is ArrayLiteral) return expr.elements.any(_hasSideEffects);

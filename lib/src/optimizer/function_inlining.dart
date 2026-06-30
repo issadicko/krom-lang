@@ -131,10 +131,15 @@ class FunctionInliner {
              // We can't modify 'expr' in place safely if it's reused (unlikely here but handled by creating new CallExpr)
              final callWithOptimizedArgs = CallExpr(expr.token, function, optimizedArgs);
              final inlined = _inlineCall(callWithOptimizedArgs, _inlinableFunctions[name]!);
-             
-             // Recursively optimize the result of inlining!
-             // This handles nested calls: id(id(5)) -> id(5) -> 5
-             return _optimizeExpression(inlined);
+
+             if (inlined != null) {
+               // Recursively optimize the result of inlining!
+               // This handles nested calls: id(id(5)) -> id(5) -> 5
+               return _optimizeExpression(inlined);
+             }
+             // Could not inline (arg-count mismatch, or would duplicate a
+             // side-effecting argument): keep the optimized call as-is.
+             return callWithOptimizedArgs;
         }
       }
       
@@ -161,19 +166,62 @@ class FunctionInliner {
     return expr;
   }
   
-  Expression _inlineCall(CallExpr call, FunctionDeclaration func) {
+  /// Inlines [call] to [func]'s body, or returns null if it cannot be inlined
+  /// safely. Returning null (rather than the original call) is important: the
+  /// caller re-optimizes a non-null result, which would loop forever on a call
+  /// that keeps failing to inline.
+  Expression? _inlineCall(CallExpr call, FunctionDeclaration func) {
     // 1. Map parameters to arguments
     if (call.arguments.length != func.parameters.length) {
       // Argument count mismatch, cannot inline safely without complex handling
-      return call;
+      return null;
     }
-    
+
     // 2. Get the return statement
     final returnStmt = func.body.statements.first as ReturnStatement;
     var returnExpr = returnStmt.value!;
-    
+
+    // 2b. Preserve argument evaluation semantics. _substitute copies the
+    // argument expression into every occurrence of the parameter, so a
+    // non-trivial (possibly side-effecting) argument would be evaluated once
+    // per use — including zero times if the parameter is unused. Only literals
+    // and identifiers are safe to duplicate/drop; for anything else, require
+    // the parameter to be used exactly once.
+    for (var i = 0; i < func.parameters.length; i++) {
+      final arg = call.arguments[i];
+      final pure = arg is NumberLiteral ||
+          arg is StringLiteral ||
+          arg is BooleanLiteral ||
+          arg is NullLiteral ||
+          arg is Identifier;
+      if (!pure && _countUses(returnExpr, func.parameters[i].value) != 1) {
+        return null; // not inlining would change evaluation count
+      }
+    }
+
     // 3. Substitute parameters with arguments in the return expression
     return _substitute(returnExpr, func.parameters, call.arguments);
+  }
+
+  /// Counts how many times [name] is referenced in [expr]. Only traverses the
+  /// node kinds [_isSafelyInlinable] permits in an inlinable body.
+  int _countUses(Expression expr, String name) {
+    if (expr is Identifier) return expr.value == name ? 1 : 0;
+    if (expr is UnaryExpr) return _countUses(expr.right, name);
+    if (expr is BinaryExpr) {
+      return _countUses(expr.left, name) + _countUses(expr.right, name);
+    }
+    if (expr is CallExpr) {
+      var n = _countUses(expr.function, name);
+      for (final a in expr.arguments) {
+        n += _countUses(a, name);
+      }
+      return n;
+    }
+    if (expr is Assignment) {
+      return _countUses(expr.left, name) + _countUses(expr.value, name);
+    }
+    return 0;
   }
   
   Expression _substitute(Expression expr, List<Identifier> params, List<Expression> args) {

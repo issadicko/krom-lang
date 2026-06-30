@@ -84,6 +84,26 @@ fn main() {
       expect(exprStmt.expression, isA<CallExpr>());
     });
 
+    test('preserves an unused property-access read (reactive subscribe)', () {
+      // `let v = tick.value` exists only to subscribe the surrounding Obx; v is
+      // unused but the READ must survive DCE (kept as an ExpressionStatement),
+      // otherwise the page stops reacting. Regression for property access being
+      // treated as side-effect-free.
+      final source = '''
+fn content() {
+  let v = tick.value
+  return "ok"
+}
+''';
+      final program = parse(source);
+      final result = DeadCodeElimination().optimize(program);
+
+      final func = result.statements.first as FunctionDeclaration;
+      expect(func.body.statements[0], isA<ExpressionStatement>());
+      expect((func.body.statements[0] as ExpressionStatement).expression,
+          isA<PropertyAccessExpr>());
+    });
+
     test('handles complex usage patterns', () {
        final source = '''
 fn main() {
