@@ -241,9 +241,35 @@ class ConstantPropagation {
       }
       
       return StringTemplate(expr.token, optimizedParts);
+    } else if (expr is FunctionLiteral) {
+      // A closure may run (e.g. as a forEach/map/filter callback) and mutate
+      // variables it captures from the enclosing scope, so those are no longer
+      // constant afterwards — invalidate them. The body itself is left
+      // unoptimised: its own parameter scope makes propagating INTO it unsafe
+      // without proper scoping. Without this,
+      //   let total = 0
+      //   xs.forEach(fn(t) { total = total + t })
+      //   return total
+      // folds `return total` to `return 0`.
+      final assigned = <String>{};
+      _scanStmt(expr.body, assigned);
+      for (final name in assigned) {
+        _invalidateConstant(name);
+      }
+      return expr;
+    } else if (expr is ArrayLiteral) {
+      // Recurse so closures nested inside an array are reached (above).
+      return ArrayLiteral(
+        expr.token,
+        expr.elements.map(_optimizeExpression).toList(),
+      );
+    } else if (expr is ObjectLiteral) {
+      final newPairs = <String, Expression>{};
+      expr.pairs.forEach((k, v) => newPairs[k] = _optimizeExpression(v));
+      return ObjectLiteral(expr.token, newPairs);
     }
     // ... (other types omitted for brevity, similar recursion)
-    
+
     return expr;
   }
   

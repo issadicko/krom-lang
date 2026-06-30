@@ -95,6 +95,26 @@ fn main() {
       expect((cond.left as Identifier).value, equals('i'));
     });
 
+    test('does not fold a variable mutated inside a closure', () {
+      // Regression: `total` was folded to the constant 0 because CP did not
+      // descend into the forEach callback that mutates it, turning
+      // `return total` into `return 0` (broke sumByType / category lookups).
+      final source = '''
+fn sumByType(items, type) {
+  let total = 0
+  items.forEach(fn(t, i) { total = total + t.amount })
+  return total
+}
+''';
+      final program = parse(source);
+      final result = ConstantPropagation().optimize(program);
+
+      final func = result.statements.first as FunctionDeclaration;
+      final ret = func.body.statements.last as ReturnStatement;
+      expect(ret.value, isA<Identifier>());
+      expect((ret.value as Identifier).value, equals('total'));
+    });
+
     test('propagates strings', () {
       final source = '''
 fn main() {
