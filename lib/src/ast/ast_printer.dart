@@ -77,14 +77,13 @@ class ASTPrinter {
       _write(') ');
       _printBlock(stmt.consequence);
       if (stmt.alternative != null) {
+        // Always brace the else-branch. The KromScript parser does not accept
+        // `else if` (only `else { … }`), so emitting `else if` here would make
+        // the printer's own output un-reparseable — e.g. validation of an
+        // optimized bundle would fail on `else { if (…) {…} }` collapsed to
+        // `else if`.
         _write(' else ');
-        if (stmt.alternative!.statements.length == 1 && 
-            stmt.alternative!.statements.first is IfStatement) {
-          // Else if
-          _printStatement(stmt.alternative!.statements.first);
-        } else {
-          _printBlock(stmt.alternative!);
-        }
+        _printBlock(stmt.alternative!);
       }
     } else if (stmt is WhileStatement) {
       _write('while (');
