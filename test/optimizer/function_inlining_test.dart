@@ -105,5 +105,27 @@ fn main() {
       expect((( decl.value as CallExpr).function as Identifier).value,
           equals('categoriesFor'));
     });
+
+    test('does not inline when a side-effecting arg would be duplicated', () {
+      // double(x) uses x twice; inlining double(makeVal()) would run makeVal()
+      // twice instead of once. makeVal is multi-statement so it is itself not
+      // inlinable (stays a real call). The double() call must be left intact.
+      final source = '''
+fn makeVal() { let v = 1 return v }
+fn double(x) { return x + x }
+fn main() {
+  let r = double(makeVal())
+  return r
+}
+''';
+      final program = parse(source);
+      final result = FunctionInliner().optimize(program);
+
+      final mainFunc = result.statements[2] as FunctionDeclaration;
+      final decl = mainFunc.body.statements[0] as VarDecl;
+      expect(decl.value, isA<CallExpr>());
+      expect(((decl.value as CallExpr).function as Identifier).value,
+          equals('double'));
+    });
   });
 }

@@ -107,6 +107,23 @@ fn build() { return 1 }
       expect(names, isNot(contains('unused')));
     });
 
+    test('keeps a function called only from a top-level statement', () {
+      // makeDefaults runs at module scope; nothing calls it from a function.
+      // It must survive — otherwise its top-level call references a removed fn.
+      final source = '''
+fn makeDefaults() { return 1 }
+let items = makeDefaults()
+fn build() { return items }
+''';
+      final program = parse(source);
+      final result = TreeShaker().shake(program);
+      final names = result.statements
+          .whereType<FunctionDeclaration>()
+          .map((f) => f.name.value)
+          .toSet();
+      expect(names, contains('makeDefaults'));
+    });
+
     test('preserves non-function statements', () {
       final source = '''
 let x = 10

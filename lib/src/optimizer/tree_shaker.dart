@@ -31,19 +31,39 @@ class TreeShaker {
   /// Common callback pattern suffixes
   static const callbackPatterns = ['Builder', 'Callback', 'Handler', 'Listener'];
 
+  /// Functions called or referenced from top-level (module-init) statements.
+  /// These run unconditionally when the script loads, so they are roots even
+  /// though no function calls them.
+  final Set<String> _topLevelRoots = {};
+
   /// Shake the program tree - remove unused functions
   Program shake(Program program) {
     // Phase 1: Collect all declared functions
     _collectDeclaredFunctions(program);
-    
+
     // Phase 2: Collect all function calls and callback references
     _collectCalls(program);
-    
+
+    // Phase 2b: Collect functions reached from top-level statements (e.g.
+    // `let items = makeDefaults()`). Without this they'd be dropped while their
+    // call site at module scope survives → runtime "undefined function".
+    _collectTopLevelRoots(program);
+
     // Phase 3: Mark reachable functions starting from entry points
     final reachable = _markReachable();
-    
+
     // Phase 4: Filter out unreachable functions
     return _filterProgram(program, reachable);
+  }
+
+  /// Phase 2b: function names called/referenced from top-level statements.
+  void _collectTopLevelRoots(Program program) {
+    for (final stmt in program.statements) {
+      // Function *bodies* are explored lazily by the BFS once the function is
+      // proven reachable; here we only want module-level (always-run) code.
+      if (stmt is FunctionDeclaration) continue;
+      _collectCallsInNode(stmt, _topLevelRoots);
+    }
   }
 
   /// Phase 1: Collect all declared function names
@@ -175,6 +195,13 @@ class TreeShaker {
     for (final callback in _referencedCallbacks) {
       if (!reachable.contains(callback)) {
         queue.add(callback);
+      }
+    }
+
+    // Add functions reached from top-level (module-init) statements.
+    for (final root in _topLevelRoots) {
+      if (_declaredFunctions.contains(root)) {
+        queue.add(root);
       }
     }
     
