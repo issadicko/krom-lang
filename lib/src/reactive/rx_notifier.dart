@@ -34,7 +34,7 @@ class RxNotifier {
   ///
   /// Called internally by [Rx.value] getter. Adds to the CURRENT capturer only.
   void captureDependency(Object rx) {
-    if (_captureStack.isNotEmpty) {
+    if (_captureStack.isNotEmpty) { // Not empty veut dire que le notifier est entrain d'écouter
       _captureStack.last.add(rx);
     }
   }
