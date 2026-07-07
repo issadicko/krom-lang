@@ -27,6 +27,7 @@ export 'src/interpreter/environment.dart'; // Export for custom execution enviro
 export 'src/interpreter/values.dart'; // Export KromBindable, ExecutionResult
 export 'src/natives/natives.dart';
 export 'src/errors/krom_exception.dart';
+export 'src/runtime/display.dart'; // kromDisplay: shared number/value display rule
 
 // Mini-App Engine exports
 export 'src/engine/krom_engine.dart';

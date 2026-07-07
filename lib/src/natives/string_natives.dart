@@ -1,3 +1,4 @@
+import '../runtime/display.dart';
 import 'natives.dart';
 import 'native_helpers.dart';
 
@@ -23,7 +24,7 @@ void registerStringNatives(NativeFunctions registry) {
 
 Object? _nativeToString(List<Object?> args) {
   requireArgs(args, 1, 'toString');
-  return args[0]?.toString() ?? 'null';
+  return kromDisplay(args[0]);
 }
 
 Object? _nativeToNumber(List<Object?> args) {
@@ -73,7 +74,7 @@ Object? _nativeJoin(List<Object?> args) {
   requireArgs(args, 2, 'join');
   final arr = getArgAsList(args, 0, 'join');
   final sep = getArgAsString(args, 1, 'join');
-  return arr.map((e) => e?.toString() ?? 'null').join(sep);
+  return arr.map(kromDisplay).join(sep);
 }
 
 Object? _nativeReplace(List<Object?> args) {

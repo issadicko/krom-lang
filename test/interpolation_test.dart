@@ -4,7 +4,7 @@ import 'package:krom_script/krom_script.dart';
 void main() {
   group('Advanced String Interpolation', () {
     test('Basic Expression', () {
-      expect(KromScript.run('return "Value: \${5 + 5}"').value, 'Value: 10.0');
+      expect(KromScript.run('return "Value: \${5 + 5}"').value, 'Value: 10');
     });
 
     test('Variable Access', () {
@@ -20,12 +20,12 @@ void main() {
         let doubleNum = (x) => x * 2
         return "Result: \${doubleNum(5)}"
       ''';
-      expect(KromScript.run(script).value, 'Result: 10.0');
+      expect(KromScript.run(script).value, 'Result: 10');
     });
 
     test('Nested Braces not in Strings', () {
       // should work because parser counts braces
-      expect(KromScript.run('return "Obj: \${ {a:1} }"').value, contains('{a: 1.0}')); 
+      expect(KromScript.run('return "Obj: \${ {a:1} }"').value, contains('{a: 1}')); 
       // or whatever toString returns for ObjectLiteral (Map)
     });
 
@@ -38,7 +38,7 @@ void main() {
 
     test('Complex nested interpolation', () {
       final script = "return 'Nested: \${ \"Inner: \${1+1}\" }'";
-      expect(KromScript.run(script).value, 'Nested: Inner: 2.0');
+      expect(KromScript.run(script).value, 'Nested: Inner: 2');
     });
   });
 }

@@ -6,6 +6,7 @@ import 'dart:developer';
 import '../ast/ast.dart';
 import '../natives/natives.dart';
 import '../errors/krom_exception.dart';
+import '../runtime/display.dart';
 import '../runtime/krom_runtime_type.dart';
 import '../runtime/krom_types.dart';
 import 'environment.dart';
@@ -277,12 +278,10 @@ class Interpreter implements KromFunctionInvoker {
   String _evalStringTemplate(StringTemplate tmpl) {
     final buffer = StringBuffer();
     for (final part in tmpl.parts) {
+      // String parts are written verbatim; interpolated values go through the
+      // display rule (whole numbers render without the trailing .0).
       final value = _evalExpression(part);
-      if (value == null) {
-        buffer.write('null');
-      } else {
-        buffer.write(value.toString());
-      }
+      buffer.write(part is StringLiteral ? value.toString() : kromDisplay(value));
     }
     return buffer.toString();
   }
@@ -364,7 +363,8 @@ class Interpreter implements KromFunctionInvoker {
           target[idx] = right;
           return right;
         } else if (target is Map) {
-          target[index.toString()] = right;
+          // Same coercion as reads: m[3] and m["3"] hit the same slot.
+          target[kromDisplay(index)] = right;
           return right;
         }
         throw Exception("Cannot assign to index of ${target.runtimeType}");
@@ -395,7 +395,7 @@ class Interpreter implements KromFunctionInvoker {
     }
 
     if (left is Map) {
-      final key = index.toString();
+      final key = kromDisplay(index);
       return left[key];
     }
 
@@ -455,7 +455,7 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalPlus(Object? left, Object? right) {
     if (left is String || right is String) {
-      return '${left ?? "null"}${right ?? "null"}';
+      return '${kromDisplay(left)}${kromDisplay(right)}';
     }
     return _toNumber(left) + _toNumber(right);
   }
@@ -494,7 +494,7 @@ class Interpreter implements KromFunctionInvoker {
     if (funcExpr is Identifier && funcExpr.value == 'print') {
       final args = expr.arguments.map((a) => _evalExpression(a)).toList();
       for (final arg in args) {
-        final output = arg?.toString() ?? 'null';
+        final output = kromDisplay(arg);
         log(output, name: 'KromScript');
         // Also emit through Dart's print so embedders that capture print()
         // (e.g. the dev preview's console panel, which runs the app in a Zone

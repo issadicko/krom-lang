@@ -106,6 +106,65 @@ fn test() {
     });
   });
 
+  group('integer display', () {
+    test('toString renders whole numbers without .0', () async {
+      const source = '''
+fn test() {
+  return toString(3) + "|" + toString(3.5) + "|" + toString(-2) + "|" + toString(0)
+}
+''';
+      expect(await run(source), '3|3.5|-2|0');
+    });
+
+    test('interpolation and + concatenation follow the display rule', () async {
+      const source = '''
+fn test() {
+  let n = 7
+  return "n=\${n} demi=\${n / 2}" + " brut=" + n
+}
+''';
+      expect(await run(source), 'n=7 demi=3.5 brut=7');
+    });
+
+    test('join and print render whole numbers cleanly', () async {
+      const source = '''
+fn test() {
+  return join([1, 2.5, 3], "-")
+}
+''';
+      expect(await run(source), '1-2.5-3');
+    });
+
+    test('lists and maps display recursively', () async {
+      const source = '''
+fn test() {
+  return toString([1, 2]) + " " + toString({ a: 1.5, b: 2 })
+}
+''';
+      expect(await run(source), '[1, 2] {a: 1.5, b: 2}');
+    });
+
+    test('numeric map keys are coherent between write and read', () async {
+      const source = '''
+fn test() {
+  let m = {}
+  m[3] = "x"
+  return m["3"] + toString(m[3] == "x")
+}
+''';
+      expect(await run(source), 'xtrue');
+    });
+
+    test('jsonStringify keeps the wire format untouched', () async {
+      const source = '''
+fn test() {
+  return jsonStringify({ n: 3 })
+}
+''';
+      expect(await run(source), '{"n":3.0}');
+    });
+  });
+
   group('block comments', () {
     test('inline comment inside an expression', () async {
       const source = '''
