@@ -67,17 +67,48 @@ class Lexer {
           tok = Token(TokenType.assign, '=', line: _line, column: startColumn);
         }
       case '+':
-        tok = Token(TokenType.plus, '+', line: _line, column: startColumn);
+        if (_peekChar() == '=') {
+          _readChar();
+          tok = Token(TokenType.plusAssign, '+=', line: _line, column: startColumn);
+        } else {
+          tok = Token(TokenType.plus, '+', line: _line, column: startColumn);
+        }
       case '-':
-        tok = Token(TokenType.minus, '-', line: _line, column: startColumn);
+        if (_peekChar() == '=') {
+          _readChar();
+          tok = Token(TokenType.minusAssign, '-=', line: _line, column: startColumn);
+        } else {
+          tok = Token(TokenType.minus, '-', line: _line, column: startColumn);
+        }
       case '*':
-        tok = Token(TokenType.asterisk, '*', line: _line, column: startColumn);
+        if (_peekChar() == '=') {
+          _readChar();
+          tok = Token(TokenType.asteriskAssign, '*=', line: _line, column: startColumn);
+        } else {
+          tok = Token(TokenType.asterisk, '*', line: _line, column: startColumn);
+        }
       case '/':
         if (_peekChar() == '/') {
           _skipLineComment();
           return nextToken();
         }
-        tok = Token(TokenType.slash, '/', line: _line, column: startColumn);
+        if (_peekChar() == '*') {
+          final hadNewline = _skipBlockComment();
+          // A block comment that spans lines separates statements exactly like
+          // the newlines it swallowed: re-emit one when ASI would have fired.
+          if (hadNewline && _shouldInsertSemicolon()) {
+            final t = Token(TokenType.newline, '\n', line: _line, column: _column);
+            _prevToken = t;
+            return t;
+          }
+          return nextToken();
+        }
+        if (_peekChar() == '=') {
+          _readChar();
+          tok = Token(TokenType.slashAssign, '/=', line: _line, column: startColumn);
+        } else {
+          tok = Token(TokenType.slash, '/', line: _line, column: startColumn);
+        }
       case '%':
         tok = Token(TokenType.percent, '%', line: _line, column: startColumn);
       case '!':
@@ -188,6 +219,29 @@ class Lexer {
     while (_ch != '\n' && _ch != '') {
       _readChar();
     }
+  }
+
+  /// Skips a `/* ... */` block comment (cur is '/', peek is '*').
+  /// Returns true when the comment contained at least one newline.
+  /// An unterminated comment simply runs to EOF.
+  bool _skipBlockComment() {
+    var hadNewline = false;
+    _readChar(); // consume '*' (cur becomes '*')
+    _readChar(); // move past '*'
+    while (_ch != '') {
+      if (_ch == '*' && _peekChar() == '/') {
+        _readChar(); // move to '/'
+        _readChar(); // move past '/'
+        return hadNewline;
+      }
+      if (_ch == '\n') {
+        hadNewline = true;
+        _line++;
+        _column = 0;
+      }
+      _readChar();
+    }
+    return hadNewline;
   }
 
   String _readIdentifier() {

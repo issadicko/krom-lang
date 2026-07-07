@@ -22,6 +22,10 @@ const int _access = 12;
 
 final Map<TokenType, int> _precedences = {
   TokenType.assign: _assign,
+  TokenType.plusAssign: _assign,
+  TokenType.minusAssign: _assign,
+  TokenType.asteriskAssign: _assign,
+  TokenType.slashAssign: _assign,
   TokenType.elvis: _elvis,
   TokenType.or: _or,
   TokenType.and: _and,
@@ -88,6 +92,10 @@ class Parser {
     _infixParseFns[TokenType.lparen] = _parseCallExpression;
     _infixParseFns[TokenType.lbracket] = _parseIndexExpression;
     _infixParseFns[TokenType.assign] = _parseAssignmentExpression;
+    _infixParseFns[TokenType.plusAssign] = _parseCompoundAssignment;
+    _infixParseFns[TokenType.minusAssign] = _parseCompoundAssignment;
+    _infixParseFns[TokenType.asteriskAssign] = _parseCompoundAssignment;
+    _infixParseFns[TokenType.slashAssign] = _parseCompoundAssignment;
 
     // Initialize tokens
     _nextToken();
@@ -237,8 +245,18 @@ class Parser {
     BlockStatement? alternative;
     if (_peekTokenIs(TokenType.elseKeyword)) {
       _nextToken();
-      if (!_expectPeek(TokenType.lbrace)) return null;
-      alternative = _parseBlockStatement();
+      if (_peekTokenIs(TokenType.ifKeyword)) {
+        // `else if (...)`: parse the chained if and wrap it in a synthetic
+        // block, so the AST (and every pass over it) only ever sees the
+        // canonical `else { if ... }` shape.
+        _nextToken();
+        final nested = _parseIfStatement();
+        if (nested == null) return null;
+        alternative = BlockStatement(nested.token, [nested]);
+      } else {
+        if (!_expectPeek(TokenType.lbrace)) return null;
+        alternative = _parseBlockStatement();
+      }
     }
 
     return IfStatement(token, condition, consequence, alternative);
@@ -715,9 +733,34 @@ class Parser {
     final precedence = _curPrecedence();
     _nextToken();
     // Right-associative: pass precedence check by not incrementing or using same
-    final right = _parseExpression(precedence); 
+    final right = _parseExpression(precedence);
     if (right == null) return null;
     return Assignment(token, left, right);
+  }
+
+  /// `a += b` (and -=, *=, /=) desugars to `a = a + b` at parse time: no new
+  /// AST node, so the interpreter and every optimizer pass see plain
+  /// assignments. The target expression is shared between the assignment and
+  /// the binary node (nodes are never mutated, only read or replaced).
+  Expression? _parseCompoundAssignment(Expression left) {
+    final token = _curToken; // '+=', '-=', '*=' or '/='
+    final op = token.literal.substring(0, 1);
+    final precedence = _curPrecedence();
+    _nextToken();
+    final right = _parseExpression(precedence);
+    if (right == null) return null;
+    final opToken = Token(
+      switch (op) {
+        '+' => TokenType.plus,
+        '-' => TokenType.minus,
+        '*' => TokenType.asterisk,
+        _ => TokenType.slash,
+      },
+      op,
+      line: token.line,
+      column: token.column,
+    );
+    return Assignment(token, left, BinaryExpr(opToken, left, op, right));
   }
 
   Expression? _parsePropertyAccess(Expression left) {

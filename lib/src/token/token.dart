@@ -22,6 +22,12 @@ enum TokenType {
   slash, // /
   percent, // %
 
+  // Compound assignment (desugared to `target = target op value` at parse time)
+  plusAssign, // +=
+  minusAssign, // -=
+  asteriskAssign, // *=
+  slashAssign, // /=
+
   // Comparison
   eq, // ==
   notEq, // !=
@@ -84,6 +90,10 @@ enum TokenType {
   bool get isOperatorContinuation => {
         TokenType.plus,
         TokenType.minus,
+        TokenType.plusAssign,
+        TokenType.minusAssign,
+        TokenType.asteriskAssign,
+        TokenType.slashAssign,
         TokenType.asterisk,
         TokenType.slash,
         TokenType.percent,
