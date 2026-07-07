@@ -243,6 +243,16 @@ class ASTPrinter {
       _printExpression(expr.left);
       _write(' ?: ');
       _printExpression(expr.defaultValue);
+    } else if (expr is TernaryExpr) {
+      // Always parenthesized: ternary binds lower than almost everything, so
+      // this keeps the printer's output re-parseable in any context.
+      _write('(');
+      _printExpression(expr.condition);
+      _write(' ? ');
+      _printExpression(expr.consequent);
+      _write(' : ');
+      _printExpression(expr.alternate);
+      _write(')');
     } else if (expr is Assignment) {
       _printExpression(expr.left);
       _write(' = ');

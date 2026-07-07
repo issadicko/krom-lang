@@ -78,6 +78,10 @@ class DeadCodeElimination {
     } else if (node is ElvisExpr) {
       _collectUsages(node.left);
       _collectUsages(node.defaultValue);
+    } else if (node is TernaryExpr) {
+      _collectUsages(node.condition);
+      _collectUsages(node.consequent);
+      _collectUsages(node.alternate);
     } else if (node is StringTemplate) {
       for (final part in node.parts) _collectUsages(part);
     } else if (node is FunctionLiteral) {
@@ -159,6 +163,11 @@ class DeadCodeElimination {
     if (expr is SafeAccessExpr) return true;
     if (expr is ElvisExpr) {
       return _hasSideEffects(expr.left) || _hasSideEffects(expr.defaultValue);
+    }
+    if (expr is TernaryExpr) {
+      return _hasSideEffects(expr.condition) ||
+          _hasSideEffects(expr.consequent) ||
+          _hasSideEffects(expr.alternate);
     }
     if (expr is BinaryExpr) return _hasSideEffects(expr.left) || _hasSideEffects(expr.right);
     if (expr is UnaryExpr) return _hasSideEffects(expr.right);

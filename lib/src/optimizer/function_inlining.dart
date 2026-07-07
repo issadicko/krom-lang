@@ -161,6 +161,15 @@ class FunctionInliner {
         return expr;
     } else if (expr is UnaryExpr) {
         return UnaryExpr(expr.token, expr.operator, _optimizeExpression(expr.right));
+    } else if (expr is TernaryExpr) {
+        return TernaryExpr(
+            expr.token,
+            _optimizeExpression(expr.condition),
+            _optimizeExpression(expr.consequent),
+            _optimizeExpression(expr.alternate));
+    } else if (expr is ElvisExpr) {
+        return ElvisExpr(expr.token, _optimizeExpression(expr.left),
+            _optimizeExpression(expr.defaultValue));
     }
     // ... propagate
     return expr;
@@ -267,6 +276,21 @@ class FunctionInliner {
                expr.token,
                _substitute(expr.left, params, args),
                _substitute(expr.value, params, args)
+           );
+       } else if (expr is TernaryExpr) {
+           return TernaryExpr(
+               expr.token,
+               _substitute(expr.condition, params, args),
+               _substitute(expr.consequent, params, args),
+               _substitute(expr.alternate, params, args)
+           );
+       } else if (expr is ElvisExpr) {
+           // Without this, inlining a body like `return x ?: 0` kept the
+           // parameter identifier unsubstituted — broken output at runtime.
+           return ElvisExpr(
+               expr.token,
+               _substitute(expr.left, params, args),
+               _substitute(expr.defaultValue, params, args)
            );
        }
        // Literals return as is

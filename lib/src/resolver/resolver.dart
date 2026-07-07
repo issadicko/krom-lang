@@ -114,6 +114,10 @@ class Resolver {
     } else if (expr is ElvisExpr) {
       _resolveExpression(expr.left);
       _resolveExpression(expr.defaultValue);
+    } else if (expr is TernaryExpr) {
+      _resolveExpression(expr.condition);
+      _resolveExpression(expr.consequent);
+      _resolveExpression(expr.alternate);
     } else if (expr is StringTemplate) {
       for (final part in expr.parts) {
         _resolveExpression(part);

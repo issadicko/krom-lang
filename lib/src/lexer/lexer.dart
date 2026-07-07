@@ -154,7 +154,7 @@ class Lexer {
           _readChar();
           tok = Token(TokenType.elvis, '?:', line: _line, column: startColumn);
         } else {
-          tok = Token(TokenType.illegal, _ch, line: _line, column: startColumn);
+          tok = Token(TokenType.question, '?', line: _line, column: startColumn);
         }
       case ',':
         tok = Token(TokenType.comma, ',', line: _line, column: startColumn);

@@ -169,6 +169,10 @@ class TreeShaker {
     } else if (expr is ElvisExpr) {
       _collectCallsFromExpression(expr.left);
       _collectCallsFromExpression(expr.defaultValue);
+    } else if (expr is TernaryExpr) {
+      _collectCallsFromExpression(expr.condition);
+      _collectCallsFromExpression(expr.consequent);
+      _collectCallsFromExpression(expr.alternate);
     } else if (expr is StringTemplate) {
       for (final part in expr.parts) {
         _collectCallsFromExpression(part);
@@ -303,6 +307,10 @@ class TreeShaker {
     } else if (expr is ElvisExpr) {
       _collectCallsInExpr(expr.left, calls);
       _collectCallsInExpr(expr.defaultValue, calls);
+    } else if (expr is TernaryExpr) {
+      _collectCallsInExpr(expr.condition, calls);
+      _collectCallsInExpr(expr.consequent, calls);
+      _collectCallsInExpr(expr.alternate, calls);
     } else if (expr is StringTemplate) {
       for (final part in expr.parts) {
         _collectCallsInExpr(part, calls);

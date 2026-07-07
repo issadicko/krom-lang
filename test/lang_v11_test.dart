@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:krom_script/krom_script.dart';
+import 'package:krom_script/src/optimizer/optimizer.dart';
 
 /// Language ergonomics wave 1: else-if chains, compound assignment,
 /// block comments (and their ASI behavior).
@@ -162,6 +163,113 @@ fn test() {
 }
 ''';
       expect(await run(source), '{"n":3.0}');
+    });
+  });
+
+  group('ternary operator', () {
+    test('picks the right branch', () async {
+      const source = '''
+fn test() {
+  let actif = true
+  return (actif ? "on" : "off") + (2 > 3 ? "a" : "b")
+}
+''';
+      expect(await run(source), 'onb');
+    });
+
+    test('nests to the right and mixes with elvis', () async {
+      const source = '''
+fn classe(x) {
+  return x > 100 ? "grand" : x > 10 ? "moyen" : "petit"
+}
+fn test() {
+  let nom = null
+  return classe(200) + classe(50) + classe(5) + (nom ?: "anonyme" ) + (nom != null ? "!" : "?")
+}
+''';
+      expect(await run(source), 'grandmoyenpetitanonyme?');
+    });
+
+    test('works inside object literals and call arguments', () async {
+      const source = '''
+fn test() {
+  let actif = false
+  let props = { color: actif ? "green" : "grey", size: actif ? 20 : 12 }
+  return props.color + toString(props.size) + toString(max(actif ? 1 : 2, 0))
+}
+''';
+      expect(await run(source), 'grey122');
+    });
+
+    test('branches are lazy — only the taken side runs', () async {
+      const source = '''
+let traces = ""
+fn gauche() { traces += "G" return "g" }
+fn droite() { traces += "D" return "d" }
+fn test() {
+  let r = true ? gauche() : droite()
+  return r + traces
+}
+''';
+      expect(await run(source), 'gG');
+    });
+
+    test('multiline with the operator at end of line', () async {
+      const source = '''
+fn test() {
+  let solde = 150
+  return solde > 100 ?
+    "confortable" :
+    "juste"
+}
+''';
+      expect(await run(source), 'confortable');
+    });
+
+    test('truthiness: 0 and "" are truthy, null/false are not', () async {
+      const source = '''
+fn test() {
+  return (0 ? "a" : "b") + ("" ? "c" : "d") + (null ? "e" : "f") + (false ? "g" : "h")
+}
+''';
+      expect(await run(source), 'acfh');
+    });
+
+    test('interpolation accepts ternaries', () async {
+      const source = '''
+fn test() {
+  let n = 5
+  return "\${n > 3 ? "beaucoup" : "peu"}"
+}
+''';
+      expect(await run(source), 'beaucoup');
+    });
+
+    test('survives the full optimizer + printer round-trip', () async {
+      const source = '''
+let seuil = 100
+fn etat(x) {
+  return x > seuil ? "haut" : "bas"
+}
+fn build() {
+  return { label: etat(150), mode: true ? "a" : "b" }
+}
+''';
+      final program = Parser(Lexer(source)).parseProgram();
+      final optimized = Optimizer().optimize(program);
+      final printed = ASTPrinter().print(optimized);
+
+      // The printed output must re-parse and behave identically.
+      final engine = KSEngine();
+      final load = await engine.load(printed);
+      expect(load.success, isTrue, reason: 'reprinted source: $printed');
+      final r = await engine.invoke('build');
+      expect(r.success, isTrue, reason: r.errors.join('\n'));
+      expect((r.value as Map)['label'], 'haut');
+      // Constant folding: `true ? "a" : "b"` must have been folded to "a".
+      expect((r.value as Map)['mode'], 'a');
+      expect(printed.contains('true ?'), isFalse,
+          reason: 'literal-condition ternary should be folded away');
     });
   });
 

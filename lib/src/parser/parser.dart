@@ -9,16 +9,17 @@ import '../errors/krom_exception.dart'; // Import exception class
 /// Operator precedence levels.
 const int _lowest = 1;
 const int _assign = 2; // =
-const int _elvis = 3;
-const int _or = 4;
-const int _and = 5;
-const int _equals = 6;
-const int _lessGreater = 7;
-const int _sum = 8;
-const int _product = 9;
-const int _prefix = 10;
-const int _call = 11;
-const int _access = 12;
+const int _ternary = 3; // ? :
+const int _elvis = 4;
+const int _or = 5;
+const int _and = 6;
+const int _equals = 7;
+const int _lessGreater = 8;
+const int _sum = 9;
+const int _product = 10;
+const int _prefix = 11;
+const int _call = 12;
+const int _access = 13;
 
 final Map<TokenType, int> _precedences = {
   TokenType.assign: _assign,
@@ -26,6 +27,7 @@ final Map<TokenType, int> _precedences = {
   TokenType.minusAssign: _assign,
   TokenType.asteriskAssign: _assign,
   TokenType.slashAssign: _assign,
+  TokenType.question: _ternary,
   TokenType.elvis: _elvis,
   TokenType.or: _or,
   TokenType.and: _and,
@@ -87,6 +89,7 @@ class Parser {
     _infixParseFns[TokenType.and] = _parseInfixExpression;
     _infixParseFns[TokenType.or] = _parseInfixExpression;
     _infixParseFns[TokenType.elvis] = _parseElvisExpression;
+    _infixParseFns[TokenType.question] = _parseTernaryExpression;
     _infixParseFns[TokenType.dot] = _parsePropertyAccess;
     _infixParseFns[TokenType.safeAccess] = _parseSafeAccess;
     _infixParseFns[TokenType.lparen] = _parseCallExpression;
@@ -726,6 +729,24 @@ class Parser {
     final defaultValue = _parseExpression(_elvis);
     if (defaultValue == null) return null;
     return ElvisExpr(token, left, defaultValue);
+  }
+
+  /// `cond ? a : b`. The consequent parses at lowest precedence and stops
+  /// naturally on `:` (no precedence entry); the alternate parses just below
+  /// _ternary so `a ? b : c ? d : e` nests to the right.
+  Expression? _parseTernaryExpression(Expression left) {
+    final token = _curToken; // '?'
+    _nextToken();
+    _skipCurrentNewlines();
+    final consequent = _parseExpression(_lowest);
+    if (consequent == null) return null;
+    _skipNewlines();
+    if (!_expectPeek(TokenType.colon)) return null;
+    _nextToken();
+    _skipCurrentNewlines();
+    final alternate = _parseExpression(_ternary - 1);
+    if (alternate == null) return null;
+    return TernaryExpr(token, left, consequent, alternate);
   }
 
   Expression? _parseAssignmentExpression(Expression left) {

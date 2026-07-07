@@ -330,6 +330,11 @@ class Interpreter implements KromFunctionInvoker {
         return _evalSafeAccess(expr);
       case ElvisExpr():
         return _evalElvisExpr(expr);
+      case TernaryExpr():
+        // Lazy branches: only the taken side is evaluated.
+        return _isTruthy(_evalExpression(expr.condition))
+            ? _evalExpression(expr.consequent)
+            : _evalExpression(expr.alternate);
       case PropertyAccessExpr():
         return _evalPropertyAccess(expr);
       case CallExpr():

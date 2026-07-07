@@ -267,6 +267,22 @@ class ConstantPropagation {
       final newPairs = <String, Expression>{};
       expr.pairs.forEach((k, v) => newPairs[k] = _optimizeExpression(v));
       return ObjectLiteral(expr.token, newPairs);
+    } else if (expr is TernaryExpr) {
+      final condition = _optimizeExpression(expr.condition);
+      final consequent = _optimizeExpression(expr.consequent);
+      final alternate = _optimizeExpression(expr.alternate);
+
+      // Fold when the condition is a literal (KromScript truthiness:
+      // null → false, bool → itself, any other value → true).
+      if (_isLiteral(condition)) {
+        if (condition is NullLiteral) return alternate;
+        if (condition is BooleanLiteral) {
+          return condition.value ? consequent : alternate;
+        }
+        return consequent; // numbers and strings are truthy
+      }
+
+      return TernaryExpr(expr.token, condition, consequent, alternate);
     }
     // ... (other types omitted for brevity, similar recursion)
 
@@ -335,6 +351,10 @@ class ConstantPropagation {
     } else if (expr is ElvisExpr) {
       _scanExpr(expr.left, out);
       _scanExpr(expr.defaultValue, out);
+    } else if (expr is TernaryExpr) {
+      _scanExpr(expr.condition, out);
+      _scanExpr(expr.consequent, out);
+      _scanExpr(expr.alternate, out);
     } else if (expr is ArrayLiteral) {
       for (final e in expr.elements) {
         _scanExpr(e, out);

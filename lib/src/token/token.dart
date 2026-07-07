@@ -45,6 +45,7 @@ enum TokenType {
   safeAccess, // ?.
   elvis, // ?:
   arrow, // =>
+  question, // ? (ternary condition)
 
   // Delimiters
   comma, // ,

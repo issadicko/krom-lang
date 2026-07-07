@@ -174,6 +174,9 @@ class NameMangler {
       return SafeAccessExpr(expr.token, _mangleExpression(expr.obj), expr.property);
     } else if (expr is ElvisExpr) {
       return ElvisExpr(expr.token, _mangleExpression(expr.left), _mangleExpression(expr.defaultValue));
+    } else if (expr is TernaryExpr) {
+      return TernaryExpr(expr.token, _mangleExpression(expr.condition),
+          _mangleExpression(expr.consequent), _mangleExpression(expr.alternate));
     } else if (expr is StringTemplate) {
       return StringTemplate(expr.token, expr.parts.map(_mangleExpression).toList());
     } else if (expr is FunctionLiteral) {

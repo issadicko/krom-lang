@@ -270,6 +270,19 @@ class SafeAccessExpr extends Expression {
   String tokenLiteral() => token.literal;
 }
 
+/// Ternary conditional: condition ? consequent : alternate
+class TernaryExpr extends Expression {
+  final Token token;
+  final Expression condition;
+  final Expression consequent;
+  final Expression alternate;
+
+  TernaryExpr(this.token, this.condition, this.consequent, this.alternate);
+
+  @override
+  String tokenLiteral() => token.literal;
+}
+
 /// Elvis expression: expr ?: default
 class ElvisExpr extends Expression {
   final Token token;
