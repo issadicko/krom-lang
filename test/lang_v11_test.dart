@@ -165,6 +165,77 @@ fn test() {
     });
   });
 
+  group('for over maps + range', () {
+    test('for iterates map keys', () async {
+      const source = '''
+fn test() {
+  let m = { a: 1, b: 2, c: 3 }
+  let total = 0
+  let cles = []
+  for (k in m) {
+    cles.add(k)
+    total += m[k]
+  }
+  return join(cles, "") + toString(total)
+}
+''';
+      expect(await run(source), 'abc6');
+    });
+
+    test('body can mutate the map safely (keys are snapshotted)', () async {
+      const source = '''
+fn test() {
+  let m = { a: 1, b: 2 }
+  for (k in m) {
+    m[k + "x"] = 9
+  }
+  return toString(m.ax) + toString(m.bx)
+}
+''';
+      expect(await run(source), '99');
+    });
+
+    test('for on a non-iterable still errors', () async {
+      final engine = KSEngine();
+      await engine.load('fn test() { for (x in 42) { } }');
+      final r = await engine.invoke('test');
+      expect(r.success, isFalse);
+    });
+
+    test('range: one, two and three arguments', () async {
+      const source = '''
+fn test() {
+  return join(range(3), ",") + "|" + join(range(2, 5), ",") + "|" + join(range(10, 0, -3), ",")
+}
+''';
+      expect(await run(source), '0,1,2|2,3,4|10,7,4,1');
+    });
+
+    test('range guards: zero step and oversized ranges throw', () async {
+      final engine = KSEngine();
+      await engine.load('''
+fn zeroStep() { return range(0, 10, 0) }
+fn tooBig() { return range(2000000) }
+''');
+      expect((await engine.invoke('zeroStep')).success, isFalse);
+      expect((await engine.invoke('tooBig')).success, isFalse);
+    });
+
+    test('range powers indexed loops', () async {
+      const source = '''
+fn test() {
+  let liste = ["a", "b", "c"]
+  let out = ""
+  for (i in range(liste.length)) {
+    out += toString(i) + liste[i]
+  }
+  return out
+}
+''';
+      expect(await run(source), '0a1b2c');
+    });
+  });
+
   group('block comments', () {
     test('inline comment inside an expression', () async {
       const source = '''

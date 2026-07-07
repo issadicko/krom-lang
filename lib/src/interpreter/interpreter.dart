@@ -211,15 +211,22 @@ class Interpreter implements KromFunctionInvoker {
   Object? _evalForStatement(ForStatement stmt) {
     final iterableVal = _evalExpression(stmt.iterable);
 
-    if (iterableVal is! List) {
+    // `for (k in map)` iterates the KEYS (values via map[k]). Keys are
+    // snapshotted so the body may add/remove entries safely.
+    final List<Object?> items;
+    if (iterableVal is List) {
+      items = iterableVal;
+    } else if (iterableVal is Map) {
+      items = iterableVal.keys.toList();
+    } else {
       throw Exception(
-          'for-in requires an array, got ${iterableVal?.runtimeType}');
+          'for-in requires an array or a map, got ${iterableVal?.runtimeType}');
     }
 
     Object? result;
     final varName = stmt.variable.value;
 
-    for (final item in iterableVal) {
+    for (final item in items) {
       // Check operation limit at each iteration
       _checkOperationLimit();
       // Check deadline at each iteration

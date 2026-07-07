@@ -17,6 +17,41 @@ void registerMathNatives(NativeFunctions registry) {
   registry.register('log', _nativeLog);
   registry.register('log10', _nativeLog10);
   registry.register('exp', _nativeExp);
+  registry.register('range', _nativeRange);
+}
+
+/// range(fin) | range(debut, fin) | range(debut, fin, pas)
+/// Half-open interval [debut, fin) — range(3) => [0, 1, 2].
+Object? _nativeRange(List<Object?> args) {
+  requireArgsRange(args, 1, 3, 'range');
+  var start = 0.0;
+  double end;
+  var step = 1.0;
+  if (args.length == 1) {
+    end = getArgAsDouble(args, 0, 'range');
+  } else {
+    start = getArgAsDouble(args, 0, 'range');
+    end = getArgAsDouble(args, 1, 'range');
+    if (args.length == 3) step = getArgAsDouble(args, 2, 'range');
+  }
+  if (step == 0) throw ArgumentError('range: step must not be 0');
+  // Native allocation escapes the interpreter's op budget: cap the size so
+  // range(1e12) cannot OOM the host.
+  final count = ((end - start) / step).ceil();
+  if (count > 1000000) {
+    throw ArgumentError('range: too many elements ($count, max 1000000)');
+  }
+  final out = <Object?>[];
+  if (step > 0) {
+    for (var v = start; v < end; v += step) {
+      out.add(v);
+    }
+  } else {
+    for (var v = start; v > end; v += step) {
+      out.add(v);
+    }
+  }
+  return out;
 }
 
 Object? _nativeAbs(List<Object?> args) {
