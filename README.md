@@ -13,7 +13,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  krom_script: ^0.2.0
+  krom_script: ^1.0.0
 ```
 
 ## Quick Start
@@ -48,10 +48,13 @@ void main() {
 
 - **Variables**: `let x = 10`
 - **Functions**: `fn(a, b) { return a + b }`
-- **Control Flow**: `if`, `else`, `for-in`
-- **Data Types**: numbers, strings, booleans, arrays, objects
+- **Control Flow**: `if` / `else if` / `else`, `for-in` (arrays & maps), `while`, ternary `cond ? a : b`
+- **Operators**: arithmetic, comparison, logical, and compound assignment (`+=`, `-=`, `*=`, `/=`)
+- **Data Types**: numbers (whole numbers print without a trailing `.0`), strings, booleans, arrays, objects
+- **Comments**: line `//` and block `/* ... */`
 - **Null Safety**: `?.` (safe access), `?:` (elvis operator)
-- **48+ Native Functions**: string, math, random, type, array, JSON, encoding, crypto
+- **Safe by default**: built-in execution guard (op-budget + deadline)
+- **48+ Native Functions**: string, math, `range()`, random, type, array, JSON, encoding, crypto
 
 ## 🔌 Extensibilité
 
