@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.0.0
+
+Première version **stable**. API figée, sûreté par défaut et un langage
+nettement plus expressif — sur Dart, Kotlin, Go et TypeScript.
+
+### Langage
+
+- **Chaînes `else if`** — plus besoin de `if` imbriqués.
+- **Affectations composées** : `+=`, `-=`, `*=`, `/=`.
+- **Opérateur ternaire** : `cond ? a : b`.
+- **`for-in` sur les maps** — itère sur les clés.
+- **Natif `range()`** pour les boucles numériques.
+- **Commentaires bloc** `/* ... */`.
+- **Affichage des entiers sans `.0`** : `4` au lieu de `4.0`, appliqué à
+  `toString`, l'interpolation, `+`, `print`, `join` et aux clés de map
+  (`jsonStringify` reste inchangé — format réseau préservé).
+
+### Sûreté
+
+- **Garde d'exécution activée par défaut** : budget d'opérations + deadline,
+  pour qu'un script tiers ne puisse pas figer l'hôte. `ExecutionLimits.unlimited`
+  reste disponible pour du code de confiance.
+- **`print()`** est aussi routé vers la sortie standard, en plus de
+  `developer.log`.
+
+### Optimiseur & introspection hôte
+
+- Correction de plusieurs bugs de fausse suppression / transformation
+  (propagation de constantes dans les boucles et les closures, inlining
+  capturant un paramètre, round-trip du `else` après optimisation).
+- Les hooks de cycle de vie (`onInit`/`onShow`/`onHide`/`onDispose`) sont
+  préservés au tree-shaking.
+- **Introspection réactive** : `reactiveState()` / `setReactiveValue()` pour
+  lire et piloter l'état, `lastOpsUsed` / `maxOperations` pour instrumenter
+  le budget d'opérations.
+
+### Migration
+
+Rien à migrer depuis 0.2.0 : ces ajouts sont rétrocompatibles.
+
 ## 0.2.0
 
 ### Breaking Changes
