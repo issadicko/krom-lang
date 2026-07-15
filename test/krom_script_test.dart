@@ -270,7 +270,8 @@ void main() {
       });
 
       test('year, month, day from specific date', () {
-        expect(KromScript.eval('year(timestamp("2024-12-25"))'), equals(2024.0));
+        expect(
+            KromScript.eval('year(timestamp("2024-12-25"))'), equals(2024.0));
         expect(KromScript.eval('month(timestamp("2024-12-25"))'), equals(12.0));
         expect(KromScript.eval('day(timestamp("2024-12-25"))'), equals(25.0));
       });

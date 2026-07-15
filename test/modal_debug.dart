@@ -11,7 +11,7 @@ void main() async {
       ])
     }
   ''');
-  
+
   final result = await engine.invoke('testModal');
   print('Result: ${result.value}');
   print('Errors: ${result.errors}');

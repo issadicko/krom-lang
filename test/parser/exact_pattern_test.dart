@@ -3,7 +3,8 @@ import 'package:krom_script/krom_script.dart';
 
 void main() {
   group('Parser - Exact ]), pattern reproduction', () {
-    test('should parse ScrollView with Row containing array, followed by comma', () {
+    test('should parse ScrollView with Row containing array, followed by comma',
+        () {
       // This is the EXACT pattern that fails - note the ]), at the end!
       final source = '''
 fn build() {
@@ -21,7 +22,7 @@ fn build() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('ERRORS: ${parser.errors()}');
       }
@@ -40,14 +41,16 @@ fn test() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('ERRORS: ${parser.errors()}');
       }
       expect(parser.errors(), isEmpty);
     });
 
-    test('should parse function call with object and function as args, inside array', () {
+    test(
+        'should parse function call with object and function as args, inside array',
+        () {
       // Pattern: FuncA(obj, FuncB(obj, [items])), another
       final source = '''
 fn test() {
@@ -59,7 +62,7 @@ fn test() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('ERRORS: ${parser.errors()}');
       }
@@ -83,7 +86,7 @@ fn test() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('ERRORS: ${parser.errors()}');
       }

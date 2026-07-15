@@ -112,7 +112,8 @@ void main() {
     test('bind field access', () {
       final user = User('Alice', 30, Address('Paris', 'France'));
 
-      final result = KromScript.builder('user.name').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.name').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Alice');
@@ -121,7 +122,8 @@ void main() {
     test('bind method call', () {
       final user = User('Bob', 25, Address('London', 'UK'));
 
-      final result = KromScript.builder('user.sayHello()').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.sayHello()').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, "Hello, I'm Bob");
@@ -130,7 +132,8 @@ void main() {
     test('bind method with arguments', () {
       final user = User('Charlie', 28, Address('Berlin', 'Germany'));
 
-      final result = KromScript.builder('user.greet("Hi")').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.greet("Hi")').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, "Hi, Charlie!");
@@ -139,7 +142,8 @@ void main() {
     test('bind nested objects', () {
       final user = User('David', 35, Address('Tokyo', 'Japan'));
 
-      final result = KromScript.builder('user.address.city').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.address.city').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Tokyo');
@@ -148,7 +152,9 @@ void main() {
     test('bind method chaining', () {
       final user = User('Emily', 32, Address('Madrid', 'Spain'));
 
-      final result = KromScript.builder('user.getAddress().city').bind('user', user).execute();
+      final result = KromScript.builder('user.getAddress().city')
+          .bind('user', user)
+          .execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 'Madrid');
@@ -157,7 +163,8 @@ void main() {
     test('bind numeric conversion', () {
       final calc = Calculator();
 
-      final result = KromScript.builder('calc.add(10, 20)').bind('calc', calc).execute();
+      final result =
+          KromScript.builder('calc.add(10, 20)').bind('calc', calc).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 30.0);
@@ -166,7 +173,8 @@ void main() {
     test('bind int return converts to double', () {
       final user = User('Frank', 42, Address('Rome', 'Italy'));
 
-      final result = KromScript.builder('user.getAge()').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.getAge()').bind('user', user).execute();
 
       expect(result.hasErrors, false);
       expect(result.value, 42.0); // KromScript uses doubles for numbers
@@ -205,13 +213,15 @@ void main() {
       final result = KromScript.builder(source).bind('user', user).execute();
 
       expect(result.hasErrors, false);
-      expect(result.value, "Hello, I'm Henry I am 29 years old and I live in Vienna");
+      expect(result.value,
+          "Hello, I'm Henry I am 29 years old and I live in Vienna");
     });
 
     test('bind non-existent method throws error', () {
       final user = User('Ivan', 31, Address('Prague', 'Czech Republic'));
 
-      final result = KromScript.builder('user.nonExistent()').bind('user', user).execute();
+      final result =
+          KromScript.builder('user.nonExistent()').bind('user', user).execute();
 
       expect(result.hasErrors, true);
       expect(result.errors.first, contains('nonExistent'));
@@ -253,7 +263,9 @@ void main() {
     test('bind method with multiple arguments', () {
       final calc = Calculator();
 
-      final result = KromScript.builder('calc.multiply(6, 7)').bind('calc', calc).execute();
+      final result = KromScript.builder('calc.multiply(6, 7)')
+          .bind('calc', calc)
+          .execute();
 
       if (result.hasErrors) {
         print('Errors: ${result.errors}');

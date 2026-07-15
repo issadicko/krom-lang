@@ -15,18 +15,19 @@ fn test() {
   print('Source:');
   print(source);
   print('\n--- Tokens ---');
-  
+
   final lexer = Lexer(source);
   while (true) {
     final token = lexer.nextToken();
-    print('${token.type.name.padRight(15)} ${token.literal.padRight(20)} (${token.line}:${token.column})');
+    print(
+        '${token.type.name.padRight(15)} ${token.literal.padRight(20)} (${token.line}:${token.column})');
     if (token.type == TokenType.eof) break;
   }
-  
+
   print('\n--- Parsing ---');
   final parser = Parser(Lexer(source));
-  final program = parser.parseProgram();
-  
+  parser.parseProgram();
+
   if (parser.errors().isEmpty) {
     print('SUCCESS!');
   } else {

@@ -36,9 +36,7 @@ void main() {
           sum = sum + i
         }
         sum
-      ''').withVariable('arr', largeArray)
-        .withMaxOperations(100)
-        .execute();
+      ''').withVariable('arr', largeArray).withMaxOperations(100).execute();
 
       expect(result.hasErrors, isTrue);
     });

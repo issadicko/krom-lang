@@ -39,7 +39,8 @@ String getArgAsString(List<Object?> args, int index, String funcName) {
   }
   final val = args[index];
   if (val is String) return val;
-  throw ArgumentError('$funcName argument $index must be a string, got ${val?.runtimeType ?? "null"}');
+  throw ArgumentError(
+      '$funcName argument $index must be a string, got ${val?.runtimeType ?? "null"}');
 }
 
 /// Helper to get an argument at [index] as a [double].
@@ -66,7 +67,8 @@ bool getArgAsBool(List<Object?> args, int index, String funcName) {
   }
   final val = args[index];
   if (val is bool) return val;
-  throw ArgumentError('$funcName argument $index must be a boolean, got ${val?.runtimeType ?? "null"}');
+  throw ArgumentError(
+      '$funcName argument $index must be a boolean, got ${val?.runtimeType ?? "null"}');
 }
 
 /// Helper to get an argument at [index] as a [List].
@@ -76,7 +78,8 @@ List getArgAsList(List<Object?> args, int index, String funcName) {
   }
   final val = args[index];
   if (val is List) return val;
-  throw ArgumentError('$funcName argument $index must be a list, got ${val?.runtimeType ?? "null"}');
+  throw ArgumentError(
+      '$funcName argument $index must be a list, got ${val?.runtimeType ?? "null"}');
 }
 
 /// Helper to get an argument at [index] as a [Map].
@@ -86,5 +89,6 @@ Map getArgAsMap(List<Object?> args, int index, String funcName) {
   }
   final val = args[index];
   if (val is Map) return val;
-  throw ArgumentError('$funcName argument $index must be a map, got ${val?.runtimeType ?? "null"}');
+  throw ArgumentError(
+      '$funcName argument $index must be a map, got ${val?.runtimeType ?? "null"}');
 }

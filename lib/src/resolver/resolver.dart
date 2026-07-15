@@ -14,7 +14,7 @@ class Resolver {
   final Interpreter interpreter;
   final List<Map<String, bool>> _scopes = [];
   ScopeType _currentFnScope = ScopeType.global;
-  
+
   // Tracking if we are inside a loop (for break/continue validation - future)
   // Tracking function type (to validate return statements)
 
@@ -48,23 +48,23 @@ class Resolver {
       _resolveStatement(stmt.consequence);
       if (stmt.alternative != null) _resolveStatement(stmt.alternative!);
     } else if (stmt is ReturnStatement) {
-       if (_currentFnScope == ScopeType.global) {
-          // Error: return outside function?
-          // Interpreter allows it for script exit.
-       }
-       if (stmt.value != null) {
-          _resolveExpression(stmt.value!);
-       }
+      if (_currentFnScope == ScopeType.global) {
+        // Error: return outside function?
+        // Interpreter allows it for script exit.
+      }
+      if (stmt.value != null) {
+        _resolveExpression(stmt.value!);
+      }
     } else if (stmt is WhileStatement) {
-        _resolveExpression(stmt.condition);
-        _resolveStatement(stmt.body);
+      _resolveExpression(stmt.condition);
+      _resolveStatement(stmt.body);
     } else if (stmt is ForStatement) {
-        _beginScope(); // For loop has its own scope for variable
-        _declare(stmt.variable.token);
-        _define(stmt.variable.token);
-        _resolveExpression(stmt.iterable);
-        _resolveStatement(stmt.body);
-        _endScope();
+      _beginScope(); // For loop has its own scope for variable
+      _declare(stmt.variable.token);
+      _define(stmt.variable.token);
+      _resolveExpression(stmt.iterable);
+      _resolveStatement(stmt.body);
+      _endScope();
     }
   }
 
@@ -138,7 +138,7 @@ class Resolver {
     _endScope();
     _currentFnScope = enclosingFn;
   }
-  
+
   void _resolveFunctionLiteral(FunctionLiteral function, ScopeType type) {
     final enclosingFn = _currentFnScope;
     _currentFnScope = type;

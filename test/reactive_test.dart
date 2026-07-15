@@ -11,7 +11,7 @@ void main() {
         let sum = Computed(fn() { return a.value + b.value })
         let result = sum.value
       ''');
-      
+
       expect(engine.getVariable('result'), equals(15.0));
     });
 
@@ -25,7 +25,7 @@ void main() {
         a.set(7)
         let after = double.value
       ''');
-      
+
       expect(engine.getVariable('before'), equals(10.0));
       expect(engine.getVariable('after'), equals(14.0));
     });
@@ -39,7 +39,7 @@ void main() {
         
         let result = quadrupled.value
       ''');
-      
+
       expect(engine.getVariable('result'), equals(40.0));
     });
 
@@ -58,11 +58,11 @@ void main() {
         let r2 = expensive.value
         let r3 = expensive.value
       ''');
-      
+
       // Should only compute once
       expect(engine.getVariable('callCount'), equals(1.0));
     });
-    
+
     test('recomputes after dependency change', () async {
       final engine = KSEngine();
       await engine.load('''
@@ -78,13 +78,13 @@ void main() {
         a.set(10)
         let r2 = expensive.value  // recompute (count=2)
       ''');
-      
+
       expect(engine.getVariable('callCount'), equals(2.0));
       expect(engine.getVariable('r1'), equals(10.0));
       expect(engine.getVariable('r2'), equals(20.0));
     });
   });
-  
+
   group('watch', () {
     test('calls callback when observable changes', () async {
       final engine = KSEngine();
@@ -100,11 +100,11 @@ void main() {
         
         a.set(10)
       ''');
-      
+
       expect(engine.getVariable('lastValue'), equals(10.0));
       expect(engine.getVariable('lastOldValue'), equals(5.0));
     });
-    
+
     test('tracks multiple changes', () async {
       final engine = KSEngine();
       await engine.load('''
@@ -119,10 +119,10 @@ void main() {
         a.set(2)
         a.set(3)
       ''');
-      
+
       expect(engine.getVariable('changeCount'), equals(3.0));
     });
-    
+
     test('can watch computed values', () async {
       final engine = KSEngine();
       await engine.load('''
@@ -137,7 +137,7 @@ void main() {
         base.set(10)
         let currentDoubled = doubled.value
       ''');
-      
+
       expect(engine.getVariable('lastDoubled'), equals(20.0));
       expect(engine.getVariable('currentDoubled'), equals(20.0));
     });

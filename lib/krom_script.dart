@@ -85,9 +85,7 @@ class KromScript {
 
   /// Run a script with optional variables.
   static ScriptResult run(String source, {Map<String, Object?>? variables}) {
-    return KromScriptBuilder(source)
-        .withVariables(variables ?? {})
-        .execute();
+    return KromScriptBuilder(source).withVariables(variables ?? {}).execute();
   }
 
   /// Simple evaluation function.

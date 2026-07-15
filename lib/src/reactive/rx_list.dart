@@ -30,7 +30,7 @@ class RxList<E> extends Rx<List<E>> implements KromBindable {
       case 'last':
         RxNotifier.instance.captureDependency(this);
         return value.isNotEmpty ? value.last : null;
-      
+
       // 2. Fallback to base Rx properties (like .value)
       default:
         return super.getProperty(name);
@@ -41,7 +41,7 @@ class RxList<E> extends Rx<List<E>> implements KromBindable {
   Object? callMethod(String name, List<Object?> args) {
     switch (name) {
       // -- Mutation Methods (Trigger Updates) --
-      
+
       case 'add':
         if (args.isNotEmpty) {
           value.add(args[0] as E);
@@ -109,8 +109,8 @@ class RxList<E> extends Rx<List<E>> implements KromBindable {
         RxNotifier.instance.captureDependency(this);
         if (args.isNotEmpty && args[0] is num) {
           final start = (args[0] as num).toInt().clamp(0, value.length);
-          final end = (args.length > 1 && args[1] is num) 
-              ? (args[1] as num).toInt().clamp(start, value.length) 
+          final end = (args.length > 1 && args[1] is num)
+              ? (args[1] as num).toInt().clamp(start, value.length)
               : value.length;
           return value.sublist(start, end);
         }

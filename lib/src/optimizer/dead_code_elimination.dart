@@ -1,19 +1,19 @@
 import '../ast/ast.dart';
 
 /// DeadCodeElimination removes variable declarations that are never used.
-/// 
+///
 /// It performs a two-pass analysis:
 /// 1. Collects all variable usages.
 /// 2. Removes variable declarations that are not in the usage set.
 class DeadCodeElimination {
   final Set<String> _usedVariables = {};
-  
+
   Program optimize(Program program) {
     _usedVariables.clear();
-    
+
     // Pass 1: Collect usages
     _collectUsages(program);
-    
+
     // Pass 2: Remove unused declarations
     return _filterProgram(program);
   }
@@ -85,7 +85,7 @@ class DeadCodeElimination {
     } else if (node is StringTemplate) {
       for (final part in node.parts) _collectUsages(part);
     } else if (node is FunctionLiteral) {
-        _collectUsages(node.body);
+      _collectUsages(node.body);
     }
   }
 
@@ -99,14 +99,14 @@ class DeadCodeElimination {
     }
     return Program(statements);
   }
-  
+
   Statement? _filterStatement(Statement stmt) {
     if (stmt is VarDecl) {
       if (!_usedVariables.contains(stmt.name.value)) {
-        // Optimization: If value expression has side effects (function call), 
+        // Optimization: If value expression has side effects (function call),
         // we should keep it as an ExpressionStatement!
         if (_hasSideEffects(stmt.value)) {
-           return ExpressionStatement(stmt.token, stmt.value);
+          return ExpressionStatement(stmt.token, stmt.value);
         }
         return null; // Remove entirely
       }
@@ -120,36 +120,26 @@ class DeadCodeElimination {
       return BlockStatement(stmt.token, statements);
     } else if (stmt is IfStatement) {
       return IfStatement(
-        stmt.token,
-        stmt.condition,
-        _filterStatement(stmt.consequence) as BlockStatement,
-        stmt.alternative != null ? (_filterStatement(stmt.alternative!) as BlockStatement?) : null
-      );
+          stmt.token,
+          stmt.condition,
+          _filterStatement(stmt.consequence) as BlockStatement,
+          stmt.alternative != null
+              ? (_filterStatement(stmt.alternative!) as BlockStatement?)
+              : null);
     } else if (stmt is WhileStatement) {
-        return WhileStatement(
-            stmt.token,
-            stmt.condition,
-            _filterStatement(stmt.body) as BlockStatement
-        );
+      return WhileStatement(stmt.token, stmt.condition,
+          _filterStatement(stmt.body) as BlockStatement);
     } else if (stmt is ForStatement) {
-        return ForStatement(
-            stmt.token,
-            stmt.variable,
-            stmt.iterable,
-            _filterStatement(stmt.body) as BlockStatement
-        );
+      return ForStatement(stmt.token, stmt.variable, stmt.iterable,
+          _filterStatement(stmt.body) as BlockStatement);
     } else if (stmt is FunctionDeclaration) {
-        return FunctionDeclaration(
-            stmt.token,
-            stmt.name,
-            stmt.parameters,
-            _filterStatement(stmt.body) as BlockStatement
-        );
+      return FunctionDeclaration(stmt.token, stmt.name, stmt.parameters,
+          _filterStatement(stmt.body) as BlockStatement);
     }
-    
+
     return stmt;
   }
-  
+
   bool _hasSideEffects(Expression expr) {
     // Returns true if the expression might have side effects (calls, assignments)
     if (expr is CallExpr) return true;
@@ -169,11 +159,13 @@ class DeadCodeElimination {
           _hasSideEffects(expr.consequent) ||
           _hasSideEffects(expr.alternate);
     }
-    if (expr is BinaryExpr) return _hasSideEffects(expr.left) || _hasSideEffects(expr.right);
+    if (expr is BinaryExpr)
+      return _hasSideEffects(expr.left) || _hasSideEffects(expr.right);
     if (expr is UnaryExpr) return _hasSideEffects(expr.right);
     if (expr is ArrayLiteral) return expr.elements.any(_hasSideEffects);
     if (expr is ObjectLiteral) return expr.pairs.values.any(_hasSideEffects);
-    if (expr is IndexExpr) return _hasSideEffects(expr.left) || _hasSideEffects(expr.index);
+    if (expr is IndexExpr)
+      return _hasSideEffects(expr.left) || _hasSideEffects(expr.index);
     if (expr is StringTemplate) return expr.parts.any(_hasSideEffects);
     return false;
   }

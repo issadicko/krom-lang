@@ -3,10 +3,11 @@ import 'package:krom_script/krom_script.dart';
 
 void main() async {
   // This is the EXACT content from the file, copied character-by-character
-  final fileContent = await File('../krom_bundler/example/output_raw.ks').readAsString();
+  final fileContent =
+      await File('../krom_bundler/example/output_raw.ks').readAsString();
   final lines = fileContent.split('\n');
   final buildFn = lines.sublist(86, 131).join('\n');
-  
+
   // This is the same content as a string literal (should pass)
   final literalBuildFn = '''
 fn build() {
@@ -59,28 +60,32 @@ fn build() {
   print('=== FROM FILE ===');
   var parser = Parser(Lexer(buildFn));
   parser.parseProgram();
-  print(parser.errors().isEmpty ? 'SUCCESS' : 'FAILED: ${parser.errors().length} errors');
-  
+  print(parser.errors().isEmpty
+      ? 'SUCCESS'
+      : 'FAILED: ${parser.errors().length} errors');
+
   print('\n=== FROM LITERAL ===');
   parser = Parser(Lexer(literalBuildFn));
   parser.parseProgram();
-  print(parser.errors().isEmpty ? 'SUCCESS' : 'FAILED: ${parser.errors().length} errors');
-  
+  print(parser.errors().isEmpty
+      ? 'SUCCESS'
+      : 'FAILED: ${parser.errors().length} errors');
+
   // Find differences
   print('\n=== DIFFERENCES ===');
   print('File length: ${buildFn.length} chars');
   print('Literal length: ${literalBuildFn.length} chars');
-  
+
   // Compare line by line
   final fileLines = buildFn.split('\n');
   final literalLines = literalBuildFn.split('\n');
-  
+
   print('File lines: ${fileLines.length}');
   print('Literal lines: ${literalLines.length}');
-  
+
   for (int i = 0; i < fileLines.length && i < literalLines.length; i++) {
     if (fileLines[i] != literalLines[i]) {
-      print('\nLine ${i+1} DIFFERS:');
+      print('\nLine ${i + 1} DIFFERS:');
       print('  FILE:    |${fileLines[i]}|');
       print('  LITERAL: |${literalLines[i]}|');
       print('  File bytes: ${fileLines[i].codeUnits}');

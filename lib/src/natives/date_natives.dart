@@ -57,7 +57,8 @@ Object? _nativeTimestamp(List<Object?> args) {
 Object? _nativeFormatDate(List<Object?> args) {
   requireArgsRange(args, 1, 2, 'formatDate');
   final ts = getArgAsInt(args, 0, 'formatDate');
-  final format = args.length == 2 ? getArgAsString(args, 1, 'formatDate') : 'YYYY-MM-DD';
+  final format =
+      args.length == 2 ? getArgAsString(args, 1, 'formatDate') : 'YYYY-MM-DD';
   final date = DateTime.fromMillisecondsSinceEpoch(ts);
 
   var result = format;

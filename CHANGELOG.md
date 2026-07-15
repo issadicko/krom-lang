@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1
+
+Qualité du paquet (aucun changement d'API ni de comportement) :
+
+- Code entièrement conforme à `dart format`.
+- Suppression du code mort signalé par l'analyseur (imports, champs et
+  variables locales inutilisés) dans `lib/`, `bin/` et `test/`.
+- `path` déclaré en `dev_dependency` (utilisé par les tests).
+
 ## 1.0.0
 
 Première version **stable**. API figée, sûreté par défaut et un langage

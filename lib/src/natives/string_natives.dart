@@ -67,7 +67,8 @@ Object? _nativeTrim(List<Object?> args) {
 
 Object? _nativeSplit(List<Object?> args) {
   requireArgs(args, 2, 'split');
-  return getArgAsString(args, 0, 'split').split(getArgAsString(args, 1, 'split'));
+  return getArgAsString(args, 0, 'split')
+      .split(getArgAsString(args, 1, 'split'));
 }
 
 Object? _nativeJoin(List<Object?> args) {
@@ -85,17 +86,20 @@ Object? _nativeReplace(List<Object?> args) {
 
 Object? _nativeContains(List<Object?> args) {
   requireArgs(args, 2, 'contains');
-  return getArgAsString(args, 0, 'contains').contains(getArgAsString(args, 1, 'contains'));
+  return getArgAsString(args, 0, 'contains')
+      .contains(getArgAsString(args, 1, 'contains'));
 }
 
 Object? _nativeStartsWith(List<Object?> args) {
   requireArgs(args, 2, 'startsWith');
-  return getArgAsString(args, 0, 'startsWith').startsWith(getArgAsString(args, 1, 'startsWith'));
+  return getArgAsString(args, 0, 'startsWith')
+      .startsWith(getArgAsString(args, 1, 'startsWith'));
 }
 
 Object? _nativeEndsWith(List<Object?> args) {
   requireArgs(args, 2, 'endsWith');
-  return getArgAsString(args, 0, 'endsWith').endsWith(getArgAsString(args, 1, 'endsWith'));
+  return getArgAsString(args, 0, 'endsWith')
+      .endsWith(getArgAsString(args, 1, 'endsWith'));
 }
 
 Object? _nativeIndexOf(List<Object?> args) {
@@ -109,7 +113,8 @@ Object? _nativePadLeft(List<Object?> args) {
   requireArgsRange(args, 2, 3, 'padLeft');
   final str = args[0]?.toString() ?? '';
   final length = getArgAsInt(args, 1, 'padLeft');
-  final padChar = args.length > 2 ? (args[2]?.toString() ?? ' ').substring(0, 1) : ' ';
+  final padChar =
+      args.length > 2 ? (args[2]?.toString() ?? ' ').substring(0, 1) : ' ';
   return str.padLeft(length, padChar);
 }
 
@@ -117,7 +122,8 @@ Object? _nativePadRight(List<Object?> args) {
   requireArgsRange(args, 2, 3, 'padRight');
   final str = args[0]?.toString() ?? '';
   final length = getArgAsInt(args, 1, 'padRight');
-  final padChar = args.length > 2 ? (args[2]?.toString() ?? ' ').substring(0, 1) : ' ';
+  final padChar =
+      args.length > 2 ? (args[2]?.toString() ?? ' ').substring(0, 1) : ' ';
   return str.padRight(length, padChar);
 }
 

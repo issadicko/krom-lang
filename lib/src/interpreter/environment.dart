@@ -33,7 +33,7 @@ class Environment {
     _store[name] = value;
     return false;
   }
-  
+
   /// Updates variable at specific scope distance.
   void assignAt(int distance, String name, Object? value) {
     _ancestor(distance)._store[name] = value;
@@ -63,6 +63,7 @@ class Environment {
     result.addAll(_store);
     return result;
   }
+
   /// Gets value at specific scope distance.
   Object? getAt(int distance, String name) {
     return _ancestor(distance)._store[name];
@@ -70,22 +71,22 @@ class Environment {
 
   /// Gets value from global scope (root environment).
   (Object?, bool) getGlobal(String name) {
-     var env = this;
-     while (env._outer != null) {
-       env = env._outer!;
-     }
-     if (env._store.containsKey(name)) {
-       return (env._store[name], true);
-     }
-     return (null, false);
+    var env = this;
+    while (env._outer != null) {
+      env = env._outer!;
+    }
+    if (env._store.containsKey(name)) {
+      return (env._store[name], true);
+    }
+    return (null, false);
   }
 
   Environment _ancestor(int distance) {
     var env = this;
     for (var i = 0; i < distance; i++) {
       if (env._outer == null) {
-         // Should not happen if Resolver is correct
-         throw Exception("Invalid scope distance: $distance (depth exceeded)");
+        // Should not happen if Resolver is correct
+        throw Exception("Invalid scope distance: $distance (depth exceeded)");
       }
       env = env._outer!;
     }

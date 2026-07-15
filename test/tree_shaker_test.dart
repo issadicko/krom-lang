@@ -7,7 +7,7 @@ void main() {
   group('TreeShaker', () {
     late Lexer lexer;
     late Parser parser;
-    
+
     Program parse(String source) {
       lexer = Lexer(source);
       parser = Parser(lexer);
@@ -23,9 +23,10 @@ fn build() { return used() }
       final program = parse(source);
       final shaker = TreeShaker();
       final result = shaker.shake(program);
-      
+
       // Should have 2 functions: used and build (unused removed)
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 2);
       expect(functions.map((f) => f.name.value).toSet(), {'used', 'build'});
     });
@@ -41,10 +42,12 @@ fn build() { return c() }
       final program = parse(source);
       final shaker = TreeShaker();
       final result = shaker.shake(program);
-      
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 4); // a, b, c, build
-      expect(functions.map((f) => f.name.value).toSet(), {'a', 'b', 'c', 'build'});
+      expect(
+          functions.map((f) => f.name.value).toSet(), {'a', 'b', 'c', 'build'});
     });
 
     test('keeps callback functions referenced as strings', () {
@@ -58,10 +61,12 @@ fn build() {
       final program = parse(source);
       final shaker = TreeShaker();
       final result = shaker.shake(program);
-      
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 2); // myBuilder, build
-      expect(functions.map((f) => f.name.value).toSet(), {'myBuilder', 'build'});
+      expect(
+          functions.map((f) => f.name.value).toSet(), {'myBuilder', 'build'});
     });
 
     test('keeps all entry points', () {
@@ -75,10 +80,12 @@ fn unused() { return 5 }
       final program = parse(source);
       final shaker = TreeShaker();
       final result = shaker.shake(program);
-      
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 4);
-      expect(functions.map((f) => f.name.value).toSet(), {'build', 'main', 'init', 'dispose'});
+      expect(functions.map((f) => f.name.value).toSet(),
+          {'build', 'main', 'init', 'dispose'});
     });
 
     test('keeps lifecycle hooks (and what they call)', () {
@@ -133,7 +140,7 @@ fn build() { return x + 1 }
       final program = parse(source);
       final shaker = TreeShaker();
       final result = shaker.shake(program);
-      
+
       expect(result.statements.length, 2); // VarDecl + build
       expect(result.statements[0], isA<VarDecl>());
       expect(result.statements[1], isA<FunctionDeclaration>());
@@ -150,12 +157,13 @@ fn build() { return used() + 10 + 20 }
       final lexer = Lexer(source);
       final parser = Parser(lexer);
       final program = parser.parseProgram();
-      
+
       final optimizer = Optimizer(enableTreeShaking: true);
       final result = optimizer.optimize(program);
-      
+
       // unused should be removed, expressions should be folded
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 2);
       expect(functions.map((f) => f.name.value).toSet(), {'used', 'build'});
     });
@@ -168,12 +176,13 @@ fn build() { return 1 }
       final lexer = Lexer(source);
       final parser = Parser(lexer);
       final program = parser.parseProgram();
-      
+
       final optimizer = Optimizer(enableTreeShaking: false);
       final result = optimizer.optimize(program);
-      
+
       // Both functions should be kept
-      final functions = result.statements.whereType<FunctionDeclaration>().toList();
+      final functions =
+          result.statements.whereType<FunctionDeclaration>().toList();
       expect(functions.length, 2);
     });
   });

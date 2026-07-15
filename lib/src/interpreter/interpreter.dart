@@ -12,7 +12,6 @@ import '../runtime/krom_types.dart';
 import 'environment.dart';
 import 'values.dart';
 
-
 // Removed extracted classes (Environment, Values, etc.)
 
 /// Interpreter evaluates AST nodes.
@@ -26,13 +25,13 @@ class Interpreter implements KromFunctionInvoker {
   Interpreter({Environment? env, NativeFunctions? natives})
       : _env = env ?? Environment(),
         _natives = natives ?? NativeFunctions.shared {
-     _registerTypes();
+    _registerTypes();
   }
-  
+
   void _registerTypes() {
     final registry = TypeRegistry.instance;
     // Only register if not already there to avoid dupes if singleton shared?
-    // Registry is singleton, so we should register once. 
+    // Registry is singleton, so we should register once.
     // But since keys are types, overwriting is fine or checking.
     // Let's just register.
     registry.register<List>(KromListType());
@@ -45,7 +44,7 @@ class Interpreter implements KromFunctionInvoker {
   void resolve(Expression expr, int depth) {
     _locals[expr] = depth;
   }
-  
+
   // ignore: unused_element - Infrastructure for future optimized variable lookup
   Object? _lookupVariable(String name, Expression expr) {
     final distance = _locals[expr];
@@ -60,32 +59,29 @@ class Interpreter implements KromFunctionInvoker {
     }
   }
 
-
-
   @override
   Object? applyFunction(Object? fn, List<Object?> args) {
     return _applyFunction(fn, args);
   }
 
-
-
   Object? _evalPropertyAccess(PropertyAccessExpr expr) {
     final obj = _evalExpression(expr.obj);
     if (obj == null) {
-      throw KromRuntimeError("cannot access property '${expr.property.value}' on null");
+      throw KromRuntimeError(
+          "cannot access property '${expr.property.value}' on null");
     }
 
     final prop = expr.property.value;
-    
+
     // Delegate to TypeRegistry
     final handler = TypeRegistry.instance.getHandler(obj);
     if (handler != null) {
-        final result = handler.getProperty(obj, prop, this);
-        if (result != null) return result;
-        
-        // If property not found, handler returns null.
-        // We could also try callMethod if we wanted to support method calls directly here,
-        // but getProperty usually returns the function to be called.
+      final result = handler.getProperty(obj, prop, this);
+      if (result != null) return result;
+
+      // If property not found, handler returns null.
+      // We could also try callMethod if we wanted to support method calls directly here,
+      // but getProperty usually returns the function to be called.
     }
 
     // Fallback to bindings/reflection
@@ -288,7 +284,8 @@ class Interpreter implements KromFunctionInvoker {
       // String parts are written verbatim; interpolated values go through the
       // display rule (whole numbers render without the trailing .0).
       final value = _evalExpression(part);
-      buffer.write(part is StringLiteral ? value.toString() : kromDisplay(value));
+      buffer
+          .write(part is StringLiteral ? value.toString() : kromDisplay(value));
     }
     return buffer.toString();
   }
@@ -370,7 +367,8 @@ class Interpreter implements KromFunctionInvoker {
             return right;
           }
           if (idx < 0 || idx > target.length) {
-             throw RangeError('Index out of range: $idx (length: ${target.length})');
+            throw RangeError(
+                'Index out of range: $idx (length: ${target.length})');
           }
           target[idx] = right;
           return right;
@@ -389,7 +387,8 @@ class Interpreter implements KromFunctionInvoker {
           target[property] = right;
           return right;
         }
-        throw Exception("Cannot assign property '$property' on ${target.runtimeType}");
+        throw Exception(
+            "Cannot assign property '$property' on ${target.runtimeType}");
 
       default:
         throw Exception("Invalid assignment target: ${left.runtimeType}");
@@ -547,9 +546,11 @@ class Interpreter implements KromFunctionInvoker {
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return <Object?>[];
     final fnVal = _evalExpression(expr.arguments[1]);
-    return arrVal.asMap().entries.map((e) => 
-      _applyFunction(fnVal, [e.value, e.key.toDouble()])
-    ).toList();
+    return arrVal
+        .asMap()
+        .entries
+        .map((e) => _applyFunction(fnVal, [e.value, e.key.toDouble()]))
+        .toList();
   }
 
   Object? _evalFilterFunction(CallExpr expr) {
@@ -570,14 +571,16 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalReduceFunction(CallExpr expr) {
     if (expr.arguments.length < 3) {
-      throw Exception('reduce requires 3 arguments: array, function, and initial value');
+      throw Exception(
+          'reduce requires 3 arguments: array, function, and initial value');
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return null;
     final fnVal = _evalExpression(expr.arguments[1]);
     var accumulator = _evalExpression(expr.arguments[2]);
     for (var i = 0; i < arrVal.length; i++) {
-      accumulator = _applyFunction(fnVal, [accumulator, arrVal[i], i.toDouble()]);
+      accumulator =
+          _applyFunction(fnVal, [accumulator, arrVal[i], i.toDouble()]);
     }
     return accumulator;
   }
@@ -638,13 +641,11 @@ class Interpreter implements KromFunctionInvoker {
     throw KromRuntimeError('not a function: ${fn?.runtimeType}');
   }
 
-
   bool _isTruthy(Object? value) {
     if (value == null) return false;
     if (value is bool) return value;
     return true;
   }
-
 
   double _toNumber(Object? value) {
     if (value is double) return value;

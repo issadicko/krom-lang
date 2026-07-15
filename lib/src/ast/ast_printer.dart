@@ -15,30 +15,38 @@ class ASTPrinter {
   static const int _lessGreater = 7;
   static const int _sum = 8;
   static const int _product = 9;
-  static const int _prefix = 10;
-  static const int _call = 11;
   static const int _access = 12;
 
   static int _getPrecedence(String operator) {
     switch (operator) {
-      case '=': return _assign;
-      case '?:': return _elvis;
-      case '||': return _or;
-      case '&&': return _and;
-      case '==': 
-      case '!=': return _equals;
+      case '=':
+        return _assign;
+      case '?:':
+        return _elvis;
+      case '||':
+        return _or;
+      case '&&':
+        return _and;
+      case '==':
+      case '!=':
+        return _equals;
       case '<':
       case '>':
       case '<=':
-      case '>=': return _lessGreater;
+      case '>=':
+        return _lessGreater;
       case '+':
-      case '-': return _sum;
+      case '-':
+        return _sum;
       case '*':
       case '/':
-      case '%': return _product;
+      case '%':
+        return _product;
       case '.':
-      case '?.': return _access;
-      default: return _lowest;
+      case '?.':
+        return _access;
+      default:
+        return _lowest;
     }
   }
 
@@ -113,7 +121,7 @@ class ASTPrinter {
   void _printExpression(Expression expr) {
     if (expr is BinaryExpr) {
       final parentPrec = _getPrecedence(expr.operator);
-      
+
       // Handle Left Child
       bool leftParens = false;
       if (expr.left is BinaryExpr) {
@@ -122,7 +130,7 @@ class ASTPrinter {
           leftParens = true;
         }
       }
-      
+
       if (leftParens) _write('(');
       _printExpression(expr.left);
       if (leftParens) _write(')');
@@ -139,11 +147,10 @@ class ASTPrinter {
           rightParens = true;
         }
       }
-      
+
       if (rightParens) _write('(');
       _printExpression(expr.right);
       if (rightParens) _write(')');
-
     } else if (expr is UnaryExpr) {
       _write(expr.operator);
       // If the operand is a binary expression, it might need parens
@@ -152,19 +159,18 @@ class ASTPrinter {
       if (expr.right is BinaryExpr) {
         needsParens = true;
       }
-      
+
       if (needsParens) _write('(');
       _printExpression(expr.right);
       if (needsParens) _write(')');
-      
     } else if (expr is Identifier) {
       _write(expr.value);
     } else if (expr is NumberLiteral) {
       // Print as integer if it's a whole number for cleaner output
       if (expr.value == expr.value.toInt()) {
-         _write(expr.value.toInt().toString());
+        _write(expr.value.toInt().toString());
       } else {
-         _write(expr.value.toString());
+        _write(expr.value.toString());
       }
     } else if (expr is StringLiteral) {
       _write('"${expr.value.replaceAll('"', r'\"')}"');
@@ -186,29 +192,31 @@ class ASTPrinter {
       if (expr.pairs.isNotEmpty) {
         final entries = expr.pairs.entries.toList();
         // Check if object is simple enough to print on one line
-        bool simple = entries.length <= 3 && entries.every((e) => e.value is! ObjectLiteral && e.value is! FunctionLiteral);
-        
+        bool simple = entries.length <= 3 &&
+            entries.every((e) =>
+                e.value is! ObjectLiteral && e.value is! FunctionLiteral);
+
         if (!simple) {
-            _writeln('');
-            _indent();
-            for (var i = 0; i < entries.length; i++) {
-                if (i > 0) _writeln(',');
-                _writeIndent();
-                _write(entries[i].key);
-                _write(': ');
-                _printExpression(entries[i].value);
-            }
-            _writeln('');
-            _outdent();
+          _writeln('');
+          _indent();
+          for (var i = 0; i < entries.length; i++) {
+            if (i > 0) _writeln(',');
             _writeIndent();
+            _write(entries[i].key);
+            _write(': ');
+            _printExpression(entries[i].value);
+          }
+          _writeln('');
+          _outdent();
+          _writeIndent();
         } else {
-             _write(' ');
-             for (var i = 0; i < entries.length; i++) {
-                if (i > 0) _write(', ');
-                _write('${entries[i].key}: ');
-                _printExpression(entries[i].value);
-             }
-             _write(' ');
+          _write(' ');
+          for (var i = 0; i < entries.length; i++) {
+            if (i > 0) _write(', ');
+            _write('${entries[i].key}: ');
+            _printExpression(entries[i].value);
+          }
+          _write(' ');
         }
       }
       _write('}');
@@ -257,17 +265,17 @@ class ASTPrinter {
       _write(' = ');
       _printExpression(expr.value);
     } else if (expr is StringTemplate) {
-        _write('"'); // Reconstructing simplified template (could be complex)
-        for (var part in expr.parts) {
-            if (part is StringLiteral) {
-                _write(part.value);
-            } else {
-                _write('\${');
-                _printExpression(part);
-                _write('}');
-            }
+      _write('"'); // Reconstructing simplified template (could be complex)
+      for (var part in expr.parts) {
+        if (part is StringLiteral) {
+          _write(part.value);
+        } else {
+          _write('\${');
+          _printExpression(part);
+          _write('}');
         }
-        _write('"');
+      }
+      _write('"');
     }
   }
 

@@ -47,7 +47,8 @@ class Lexer {
         tok = Token(TokenType.eof, '', line: _line, column: startColumn);
       case '\n':
         if (_shouldInsertSemicolon()) {
-          tok = Token(TokenType.newline, '\n', line: _line, column: startColumn);
+          tok =
+              Token(TokenType.newline, '\n', line: _line, column: startColumn);
         } else {
           _line++;
           _column = 0;
@@ -69,23 +70,27 @@ class Lexer {
       case '+':
         if (_peekChar() == '=') {
           _readChar();
-          tok = Token(TokenType.plusAssign, '+=', line: _line, column: startColumn);
+          tok = Token(TokenType.plusAssign, '+=',
+              line: _line, column: startColumn);
         } else {
           tok = Token(TokenType.plus, '+', line: _line, column: startColumn);
         }
       case '-':
         if (_peekChar() == '=') {
           _readChar();
-          tok = Token(TokenType.minusAssign, '-=', line: _line, column: startColumn);
+          tok = Token(TokenType.minusAssign, '-=',
+              line: _line, column: startColumn);
         } else {
           tok = Token(TokenType.minus, '-', line: _line, column: startColumn);
         }
       case '*':
         if (_peekChar() == '=') {
           _readChar();
-          tok = Token(TokenType.asteriskAssign, '*=', line: _line, column: startColumn);
+          tok = Token(TokenType.asteriskAssign, '*=',
+              line: _line, column: startColumn);
         } else {
-          tok = Token(TokenType.asterisk, '*', line: _line, column: startColumn);
+          tok =
+              Token(TokenType.asterisk, '*', line: _line, column: startColumn);
         }
       case '/':
         if (_peekChar() == '/') {
@@ -97,7 +102,8 @@ class Lexer {
           // A block comment that spans lines separates statements exactly like
           // the newlines it swallowed: re-emit one when ASI would have fired.
           if (hadNewline && _shouldInsertSemicolon()) {
-            final t = Token(TokenType.newline, '\n', line: _line, column: _column);
+            final t =
+                Token(TokenType.newline, '\n', line: _line, column: _column);
             _prevToken = t;
             return t;
           }
@@ -105,7 +111,8 @@ class Lexer {
         }
         if (_peekChar() == '=') {
           _readChar();
-          tok = Token(TokenType.slashAssign, '/=', line: _line, column: startColumn);
+          tok = Token(TokenType.slashAssign, '/=',
+              line: _line, column: startColumn);
         } else {
           tok = Token(TokenType.slash, '/', line: _line, column: startColumn);
         }
@@ -149,12 +156,14 @@ class Lexer {
       case '?':
         if (_peekChar() == '.') {
           _readChar();
-          tok = Token(TokenType.safeAccess, '?.', line: _line, column: startColumn);
+          tok = Token(TokenType.safeAccess, '?.',
+              line: _line, column: startColumn);
         } else if (_peekChar() == ':') {
           _readChar();
           tok = Token(TokenType.elvis, '?:', line: _line, column: startColumn);
         } else {
-          tok = Token(TokenType.question, '?', line: _line, column: startColumn);
+          tok =
+              Token(TokenType.question, '?', line: _line, column: startColumn);
         }
       case ',':
         tok = Token(TokenType.comma, ',', line: _line, column: startColumn);
@@ -180,7 +189,8 @@ class Lexer {
       case "'":
         final delimiter = _ch;
         final result = _readString(delimiter);
-        final type = result.isTemplate ? TokenType.stringTemplate : TokenType.string;
+        final type =
+            result.isTemplate ? TokenType.stringTemplate : TokenType.string;
         tok = Token(type, result.value, line: _line, column: startColumn);
       default:
         if (_isLetter(_ch)) {
@@ -272,17 +282,25 @@ class Lexer {
     var isTemplate = false;
     var braceDepth = 0;
 
-    while (_ch != '' && (braceDepth > 0 || _ch != delimiter)) { // Run until delimiter at depth 0 or EOF
+    while (_ch != '' && (braceDepth > 0 || _ch != delimiter)) {
+      // Run until delimiter at depth 0 or EOF
       if (_ch == '\\') {
         _readChar();
         switch (_ch) {
-          case 'n': buffer.write('\n');
-          case 't': buffer.write('\t');
-          case 'r': buffer.write('\r');
-          case '"': buffer.write('"');
-          case "'": buffer.write("'");
-          case '\\': buffer.write('\\');
-          case '\$': buffer.write('\$');
+          case 'n':
+            buffer.write('\n');
+          case 't':
+            buffer.write('\t');
+          case 'r':
+            buffer.write('\r');
+          case '"':
+            buffer.write('"');
+          case "'":
+            buffer.write("'");
+          case '\\':
+            buffer.write('\\');
+          case '\$':
+            buffer.write('\$');
           default:
             buffer.write('\\');
             buffer.write(_ch);
@@ -295,30 +313,30 @@ class Lexer {
         buffer.write('{');
         _readChar(); // consume $
       } else if (braceDepth > 0) {
-          // Inside interpolation
-          if (_ch == '{') {
-              braceDepth++;
-              buffer.write(_ch);
-          } else if (_ch == '}') {
-              braceDepth--;
-              buffer.write(_ch);
-          } else if (_ch == '"' || _ch == "'") {
-              // Skip string inside interpolation
-              final quote = _ch;
-              buffer.write(quote);
+        // Inside interpolation
+        if (_ch == '{') {
+          braceDepth++;
+          buffer.write(_ch);
+        } else if (_ch == '}') {
+          braceDepth--;
+          buffer.write(_ch);
+        } else if (_ch == '"' || _ch == "'") {
+          // Skip string inside interpolation
+          final quote = _ch;
+          buffer.write(quote);
+          _readChar();
+          while (_ch != '' && _ch != quote) {
+            if (_ch == '\\') {
+              buffer.write('\\');
               _readChar();
-              while (_ch != '' && _ch != quote) {
-                  if (_ch == '\\') {
-                      buffer.write('\\');
-                      _readChar();
-                  }
-                  buffer.write(_ch);
-                  _readChar();
-              }
-              buffer.write(_ch); // closing quote
-          } else {
-              buffer.write(_ch);
+            }
+            buffer.write(_ch);
+            _readChar();
           }
+          buffer.write(_ch); // closing quote
+        } else {
+          buffer.write(_ch);
+        }
       } else {
         buffer.write(_ch);
       }

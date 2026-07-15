@@ -74,7 +74,8 @@ void main() {
         expect(engine.getVariable('y'), equals('Hello, World'));
       });
 
-      test('should resolve closures correctly with static resolution', () async {
+      test('should resolve closures correctly with static resolution',
+          () async {
         // This tests that the Resolver correctly handles closures
         await engine.load('''
           let makeCounter = fn() {
@@ -90,10 +91,10 @@ void main() {
         // Each call should increment and return the count
         final r1 = await engine.invoke('counter');
         expect(r1.value, equals(1.0));
-        
+
         final r2 = await engine.invoke('counter');
         expect(r2.value, equals(2.0));
-        
+
         final r3 = await engine.invoke('counter');
         expect(r3.value, equals(3.0));
       });
@@ -109,7 +110,8 @@ void main() {
           }
         ''');
 
-        final result = await engine.invoke('apply', [engine.getVariable('double'), 5.0]);
+        final result =
+            await engine.invoke('apply', [engine.getVariable('double'), 5.0]);
         expect(result.value, equals(10.0));
       });
     });
@@ -184,10 +186,11 @@ void main() {
           }
         ''');
 
-        final result = await engine.invoke('testFn', ['val']); // Pass 1 arg, expect b=null
-        
+        final result =
+            await engine.invoke('testFn', ['val']); // Pass 1 arg, expect b=null
+
         if (!result.success) {
-           fail('Invoke failed: ${result.errors}');
+          fail('Invoke failed: ${result.errors}');
         }
         expect(result.value, equals('a=val, b=null'));
       });
@@ -208,13 +211,16 @@ void main() {
 
       test('KSEngine invokeSync() should throw if engine not loaded', () {
         final engine = KSEngine();
-        expect(() => engine.invokeSync('test'), throwsA(isA<KromRuntimeError>()));
+        expect(
+            () => engine.invokeSync('test'), throwsA(isA<KromRuntimeError>()));
       });
 
-      test('KSEngine invokeSync() should throw if function not found', () async {
+      test('KSEngine invokeSync() should throw if function not found',
+          () async {
         final engine = KSEngine();
         await engine.load('');
-        expect(() => engine.invokeSync('missing'), throwsA(isA<KromRuntimeError>()));
+        expect(() => engine.invokeSync('missing'),
+            throwsA(isA<KromRuntimeError>()));
       });
     });
 

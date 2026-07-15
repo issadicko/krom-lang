@@ -6,7 +6,7 @@ void main() {
   group('DeadCodeElimination', () {
     late Lexer lexer;
     late Parser parser;
-    
+
     Program parse(String source) {
       lexer = Lexer(source);
       parser = Parser(lexer);
@@ -24,7 +24,7 @@ fn main() {
       final program = parse(source);
       final dce = DeadCodeElimination();
       final result = dce.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       expect(func.body.statements.length, 2); // let used, return
       expect(func.body.statements[0], isA<VarDecl>());
@@ -42,7 +42,7 @@ fn main() {
       final program = parse(source);
       final dce = DeadCodeElimination();
       final result = dce.optimize(program);
-      
+
       final vars = result.statements.whereType<VarDecl>().toList();
       expect(vars.length, 1);
       expect(vars[0].name.value, equals('used'));
@@ -60,7 +60,7 @@ fn main() {
       final program = parse(source);
       final dce = DeadCodeElimination();
       final result = dce.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       expect(func.body.statements.length, 2); // let x, if
     });
@@ -76,7 +76,7 @@ fn main() {
       final program = parse(source);
       final dce = DeadCodeElimination();
       final result = dce.optimize(program);
-      
+
       final func = result.statements.last as FunctionDeclaration; // main
       // Should behave become ExpressionStatement(CallExpr) instead of VarDecl
       expect(func.body.statements[0], isA<ExpressionStatement>());
@@ -105,7 +105,7 @@ fn content() {
     });
 
     test('handles complex usage patterns', () {
-       final source = '''
+      final source = '''
 fn main() {
   let a = 1
   let b = 2
@@ -125,25 +125,25 @@ fn main() {
   return 0
 }
 ''';
-      // NOTE: Current implementation is single-pass. 
+      // NOTE: Current implementation is single-pass.
       // Multi-pass would remove c, then b, then a.
       // This test expects single-pass behavior for now.
-      
+
       final program = parse(source);
       final dce = DeadCodeElimination();
       final result = dce.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       // a is used (by c), b is unused.
       // c is unused. c's value has no side effect.
       // So c removed. b removed.
       // a is kept because it was "used" in c's init expression.
-      
+
       final varNames = func.body.statements
           .whereType<VarDecl>()
           .map((v) => v.name.value)
           .toSet();
-          
+
       expect(varNames, contains('a')); // Kept because used in c
       expect(varNames, isNot(contains('b'))); // Removed
       expect(varNames, isNot(contains('c'))); // Removed

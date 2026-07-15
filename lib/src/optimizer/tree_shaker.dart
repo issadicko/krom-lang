@@ -1,7 +1,7 @@
 import '../ast/ast.dart';
 
 /// TreeShaker performs dead code elimination by removing unused functions.
-/// 
+///
 /// It analyzes the AST to build a call graph, then removes functions that
 /// are not reachable from entry points (like `build` or callback references).
 class TreeShaker {
@@ -9,7 +9,7 @@ class TreeShaker {
   final Set<String> _calledFunctions = {};
   final Set<String> _referencedCallbacks = {};
   final Map<String, FunctionDeclaration> _functionMap = {};
-  
+
   /// Entry point function names that should always be kept.
   ///
   /// Includes the page lifecycle hooks (onInit/onShow/onHide/onDispose): the
@@ -27,9 +27,14 @@ class TreeShaker {
     'init',
     'dispose',
   };
-  
+
   /// Common callback pattern suffixes
-  static const callbackPatterns = ['Builder', 'Callback', 'Handler', 'Listener'];
+  static const callbackPatterns = [
+    'Builder',
+    'Callback',
+    'Handler',
+    'Listener'
+  ];
 
   /// Functions called or referenced from top-level (module-init) statements.
   /// These run unconditionally when the script loads, so they are roots even
@@ -187,14 +192,14 @@ class TreeShaker {
   Set<String> _markReachable() {
     final reachable = <String>{};
     final queue = <String>[];
-    
+
     // Start with entry points
     for (final entry in entryPoints) {
       if (_declaredFunctions.contains(entry)) {
         queue.add(entry);
       }
     }
-    
+
     // Add builder pattern functions (e.g., myBuilder referenced as string)
     for (final callback in _referencedCallbacks) {
       if (!reachable.contains(callback)) {
@@ -208,13 +213,13 @@ class TreeShaker {
         queue.add(root);
       }
     }
-    
+
     // BFS to find all reachable functions
     while (queue.isNotEmpty) {
       final funcName = queue.removeAt(0);
       if (reachable.contains(funcName)) continue;
       reachable.add(funcName);
-      
+
       // Find calls within this function
       final func = _functionMap[funcName];
       if (func != null) {
@@ -226,7 +231,7 @@ class TreeShaker {
         }
       }
     }
-    
+
     return reachable;
   }
 
@@ -324,7 +329,7 @@ class TreeShaker {
   /// Phase 4: Filter the program to keep only reachable functions
   Program _filterProgram(Program program, Set<String> reachable) {
     final filteredStatements = <Statement>[];
-    
+
     for (final stmt in program.statements) {
       if (stmt is FunctionDeclaration) {
         final name = stmt.name.value;
@@ -337,10 +342,10 @@ class TreeShaker {
         filteredStatements.add(stmt);
       }
     }
-    
+
     return Program(filteredStatements);
   }
-  
+
   /// Get statistics about the shaking
   Map<String, dynamic> getStats() {
     return {

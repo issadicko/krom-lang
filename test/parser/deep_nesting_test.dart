@@ -48,7 +48,7 @@ fn build() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('FAILED: ${parser.errors()}');
       }
@@ -74,7 +74,7 @@ fn build() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('FAILED: ${parser.errors()}');
       }

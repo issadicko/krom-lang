@@ -6,7 +6,7 @@ void main() {
   group('NameMangler', () {
     late Lexer lexer;
     late Parser parser;
-    
+
     Program parse(String source) {
       lexer = Lexer(source);
       parser = Parser(lexer);
@@ -23,12 +23,12 @@ fn main() {
       final program = parse(source);
       final mangler = NameMangler();
       final result = mangler.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       final varDecl = func.body.statements[0] as VarDecl;
       expect(varDecl.name.value, isNot(equals('veryLongName')));
       expect(varDecl.name.value.length, lessThan(4));
-      
+
       final ret = func.body.statements[1] as ReturnStatement;
       expect((ret.value as Identifier).value, equals(varDecl.name.value));
     });
@@ -43,10 +43,10 @@ fn main() {
       final program = parse(source);
       final mangler = NameMangler();
       final result = mangler.optimize(program);
-      
+
       final globalDecl = result.statements.first as VarDecl;
       expect(globalDecl.name.value, equals('globalVar'));
-      
+
       final func = result.statements.last as FunctionDeclaration;
       final ret = func.body.statements.first as ReturnStatement;
       expect((ret.value as Identifier).value, equals('globalVar'));
@@ -66,24 +66,24 @@ fn main() {
       final program = parse(source);
       final mangler = NameMangler();
       final result = mangler.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       final outerX = (func.body.statements[0] as VarDecl).name.value;
-      
+
       final ifStmt = func.body.statements[1] as IfStatement;
       final block = ifStmt.consequence;
       final innerX = (block.statements[0] as VarDecl).name.value;
-      
+
       // They should be different or handled by scoping rules
-      // Mangler generates new names per declaration. 
+      // Mangler generates new names per declaration.
       // If scopes are nested, they might get same name if counter resets?
       // No, counter is global to mangler instance (or class).
       // Wait, _NameGenerator is per optimize call.
-      
+
       // In this impl, each declaration gets unique name from generator.
       expect(outerX, isNot(equals(innerX)));
     });
-    
+
     test('does not mangle object keys', () {
       final source = '''
 fn main() {
@@ -94,11 +94,11 @@ fn main() {
       final program = parse(source);
       final mangler = NameMangler();
       final result = mangler.optimize(program);
-      
+
       final func = result.statements.first as FunctionDeclaration;
       final varDecl = func.body.statements[0] as VarDecl;
       final obj = varDecl.value as ObjectLiteral;
-      
+
       expect(obj.pairs.keys, contains('key'));
       expect(obj.pairs.keys, contains('sensitive'));
     });

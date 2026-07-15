@@ -354,7 +354,8 @@ fn test() {
       expect(await run(source), 3.0);
     });
 
-    test('multi-line comment between statements keeps them separated', () async {
+    test('multi-line comment between statements keeps them separated',
+        () async {
       const source = '''
 fn test() {
   let a = 1 /* commentaire
@@ -380,7 +381,8 @@ fn test() {
 
     test('unterminated comment reaches EOF without crashing', () async {
       final engine = KSEngine();
-      final result = await engine.load('fn test() { return 1 } /* jamais fermé');
+      final result =
+          await engine.load('fn test() { return 1 } /* jamais fermé');
       expect(result.success, isTrue);
     });
 

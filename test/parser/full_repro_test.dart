@@ -88,7 +88,7 @@ fn build() {
 ''';
       final parser = Parser(Lexer(source));
       parser.parseProgram();
-      
+
       if (parser.errors().isNotEmpty) {
         print('ERRORS: ${parser.errors()}');
       }

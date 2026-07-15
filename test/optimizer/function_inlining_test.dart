@@ -6,7 +6,7 @@ void main() {
   group('FunctionInliner', () {
     late Lexer lexer;
     late Parser parser;
-    
+
     Program parse(String source) {
       lexer = Lexer(source);
       parser = Parser(lexer);
@@ -26,10 +26,10 @@ fn main() {
       final program = parse(source);
       final optimizer = FunctionInliner();
       final result = optimizer.optimize(program);
-      
+
       final mainFunc = result.statements[1] as FunctionDeclaration;
       final decl = mainFunc.body.statements[0] as VarDecl;
-      
+
       // Should be BinaryExpr(Num(1), +, Num(2))
       expect(decl.value, isA<BinaryExpr>());
       final bin = decl.value as BinaryExpr;
@@ -47,14 +47,14 @@ fn main() {
 ''';
       // id(5) -> 5
       // id(id(5)) -> id(5) -> 5
-      
+
       final program = parse(source);
       final optimizer = FunctionInliner();
       final result = optimizer.optimize(program);
-      
+
       final mainFunc = result.statements[1] as FunctionDeclaration;
       final decl = mainFunc.body.statements[0] as VarDecl;
-      
+
       expect(decl.value, isA<NumberLiteral>());
       expect((decl.value as NumberLiteral).value, equals(5));
     });
@@ -73,10 +73,10 @@ fn main() {
       final program = parse(source);
       final optimizer = FunctionInliner();
       final result = optimizer.optimize(program);
-      
+
       final mainFunc = result.statements[1] as FunctionDeclaration;
       final stmt = mainFunc.body.statements[0] as ExpressionStatement;
-      
+
       // Should still be CallExpr
       expect(stmt.expression, isA<CallExpr>());
     });
@@ -102,7 +102,7 @@ fn main() {
 
       // Must remain a call to categoriesFor — not inlined.
       expect(decl.value, isA<CallExpr>());
-      expect((( decl.value as CallExpr).function as Identifier).value,
+      expect(((decl.value as CallExpr).function as Identifier).value,
           equals('categoriesFor'));
     });
 

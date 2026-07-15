@@ -7,37 +7,37 @@ import 'natives.dart';
 import 'native_helpers.dart';
 
 void registerMiscNatives(NativeFunctions registry) {
-    // Reactive factories
-    registry.register('Obs', createObs);
-    registry.register('List', createRxList);
+  // Reactive factories
+  registry.register('Obs', createObs);
+  registry.register('List', createRxList);
 
-    // Type functions
-    registry.register('typeOf', _nativeTypeOf);
-    registry.register('isNull', _nativeIsNull);
-    registry.register('isNumber', _nativeIsNumber);
-    registry.register('isString', _nativeIsString);
-    registry.register('isBool', _nativeIsBool);
-    registry.register('toInt', _nativeToInt);
-    registry.register('toDouble', _nativeToDouble);
+  // Type functions
+  registry.register('typeOf', _nativeTypeOf);
+  registry.register('isNull', _nativeIsNull);
+  registry.register('isNumber', _nativeIsNumber);
+  registry.register('isString', _nativeIsString);
+  registry.register('isBool', _nativeIsBool);
+  registry.register('toInt', _nativeToInt);
+  registry.register('toDouble', _nativeToDouble);
 
-    // Random functions
-    registry.register('random', _nativeRandom);
-    registry.register('randomInt', _nativeRandomInt);
-    registry.register('randomUUID', _nativeRandomUUID);
+  // Random functions
+  registry.register('random', _nativeRandom);
+  registry.register('randomInt', _nativeRandomInt);
+  registry.register('randomUUID', _nativeRandomUUID);
 
-    // Crypto/Hash functions
-    registry.register('md5', _nativeMd5);
-    registry.register('sha1', _nativeSha1);
-    registry.register('sha256', _nativeSha256);
+  // Crypto/Hash functions
+  registry.register('md5', _nativeMd5);
+  registry.register('sha1', _nativeSha1);
+  registry.register('sha256', _nativeSha256);
 
-    // Array functions
-    registry.register('sort', _nativeSort);
-    registry.register('reverse', _nativeReverse);
-    registry.register('size', _nativeSize);
-    registry.register('first', _nativeFirst);
-    registry.register('last', _nativeLast);
-    registry.register('slice', _nativeSlice);
-    registry.register('setProperty', _nativeSetProperty);
+  // Array functions
+  registry.register('sort', _nativeSort);
+  registry.register('reverse', _nativeReverse);
+  registry.register('size', _nativeSize);
+  registry.register('first', _nativeFirst);
+  registry.register('last', _nativeLast);
+  registry.register('slice', _nativeSlice);
+  registry.register('setProperty', _nativeSetProperty);
 }
 
 // ============ Type functions ============
@@ -81,18 +81,18 @@ Object? _nativeToInt(List<Object?> args) {
     if (args.isEmpty) return 0.0;
     final value = args[0];
     if (value == null) return 0.0;
-    
+
     if (value is int) return value.toDouble();
     if (value is double) return value.toInt().toDouble();
     if (value is bool) return value ? 1.0 : 0.0;
-    
+
     if (value is String) {
       if (value.isEmpty) return 0.0;
       final n = num.tryParse(value);
       if (n != null) return n.toInt().toDouble();
       return 0.0;
     }
-    
+
     // Lists, Maps, etc return 0
     return 0.0;
   } catch (e) {
@@ -106,17 +106,17 @@ Object? _nativeToDouble(List<Object?> args) {
     if (args.isEmpty) return 0.0;
     final value = args[0];
     if (value == null) return 0.0;
-    
+
     if (value is num) return value.toDouble();
     if (value is bool) return value ? 1.0 : 0.0;
-    
+
     if (value is String) {
       if (value.isEmpty) return 0.0;
       final n = double.tryParse(value);
       if (n != null) return n;
       return 0.0;
     }
-    
+
     return 0.0;
   } catch (e) {
     print('Error converting to double: $e');
@@ -195,7 +195,8 @@ Object? _nativeSize(List<Object?> args) {
   if (v is List) return v.length.toDouble();
   if (v is String) return v.length.toDouble();
   if (v is Map) return v.length.toDouble();
-  throw ArgumentError('size requires an array, string, or object, got ${v?.runtimeType}');
+  throw ArgumentError(
+      'size requires an array, string, or object, got ${v?.runtimeType}');
 }
 
 Object? _nativeFirst(List<Object?> args) {
@@ -251,10 +252,10 @@ int compareValues(Object? a, Object? b) {
   // Use toDouble from helper isn't quite right here as we want to know if it IS a number without throwing
   if ((a is num || a is String && double.tryParse(a) != null) &&
       (b is num || b is String && double.tryParse(b) != null)) {
-       // Safe to compare as numbers
-       final aNum = toDouble(a);
-       final bNum = toDouble(b);
-       return aNum.compareTo(bNum);
+    // Safe to compare as numbers
+    final aNum = toDouble(a);
+    final bNum = toDouble(b);
+    return aNum.compareTo(bNum);
   }
 
   return a.toString().compareTo(b.toString());

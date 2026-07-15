@@ -11,7 +11,7 @@ void main() {
       
       let result = add(5, 3)
     ''');
-    
+
     expect(engine.getVariable('result'), equals(8.0));
   });
 
@@ -25,10 +25,10 @@ void main() {
       
       let result = fib(10)
     ''');
-    
+
     expect(engine.getVariable('result'), equals(55.0));
   });
-  
+
   test('Function declaration alongside closure works', () async {
     final engine = KSEngine();
     await engine.load('''
@@ -40,10 +40,10 @@ void main() {
       
       let result = double(5)
     ''');
-    
+
     expect(engine.getVariable('result'), equals(10.0));
   });
-  
+
   test('Nested function declarations work', () async {
     final engine = KSEngine();
     await engine.load('''
@@ -56,7 +56,7 @@ void main() {
       
       let result = outer(5)
     ''');
-    
+
     expect(engine.getVariable('result'), equals(15.0));
   });
 }

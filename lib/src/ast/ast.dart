@@ -34,7 +34,8 @@ class Program extends Node {
   Program([List<Statement>? statements]) : statements = statements ?? [];
 
   @override
-  String tokenLiteral() => statements.isNotEmpty ? statements.first.tokenLiteral() : '';
+  String tokenLiteral() =>
+      statements.isNotEmpty ? statements.first.tokenLiteral() : '';
 }
 
 /// Variable declaration: let x = expr

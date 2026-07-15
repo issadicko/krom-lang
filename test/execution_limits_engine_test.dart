@@ -18,8 +18,8 @@ void main() {
 
     test('long loop trips the wall-clock deadline', () async {
       final engine = KSEngine();
-      await engine
-          .load('fn build() { let i = 0\n while (i < 100000000) { i = i + 1 } }');
+      await engine.load(
+          'fn build() { let i = 0\n while (i < 100000000) { i = i + 1 } }');
       engine.executionLimits = const ExecutionLimits(
         maxOperations: 0, // unlimited ops; only the deadline bounds it
         deadline: Duration(milliseconds: 200),
@@ -32,7 +32,8 @@ void main() {
       expect(sw.elapsedMilliseconds, lessThan(3000));
     });
 
-    test('legitimate build() runs fine under the default safe limits', () async {
+    test('legitimate build() runs fine under the default safe limits',
+        () async {
       final engine = KSEngine();
       await engine.load(
         'fn build() { let s = 0\n let i = 0\n while (i < 100) { s = s + i\n i = i + 1 }\n return s }',

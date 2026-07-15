@@ -42,8 +42,9 @@ void main() {
           .toSet();
 
       expect(funcNames, contains('build'));
-      expect(funcNames, contains('handleClick'), 
-        reason: 'handleClick should be kept because it is referenced in "onTap" string');
+      expect(funcNames, contains('handleClick'),
+          reason:
+              'handleClick should be kept because it is referenced in "onTap" string');
     });
 
     test('should keep function referenced in function argument string', () {
@@ -67,7 +68,8 @@ void main() {
 
       expect(funcNames, contains('build'));
       expect(funcNames, contains('handleEvent'),
-          reason: 'handleEvent should be kept because it is referenced in function argument string');
+          reason:
+              'handleEvent should be kept because it is referenced in function argument string');
     });
   });
 }

@@ -12,7 +12,8 @@ let x = [Foo()]
       expect(Parser(Lexer(source)).errors(), isEmpty);
     });
 
-    test('should parse function call with 2 args where second is function call', () {
+    test('should parse function call with 2 args where second is function call',
+        () {
       // Two args: object and function call
       final source = '''
 let x = Outer({a: 1}, Inner())
@@ -36,7 +37,9 @@ let x = [
       expect(parser.errors(), isEmpty);
     });
 
-    test('should parse function call with 2 args inside array followed by comma', () {
+    test(
+        'should parse function call with 2 args inside array followed by comma',
+        () {
       // The ACTUAL failing pattern
       final source = '''
 let x = [
@@ -64,7 +67,8 @@ let x = [
       expect(parser.errors(), isEmpty);
     });
 
-    test('should parse multiline function call with array arg inside array', () {
+    test('should parse multiline function call with array arg inside array',
+        () {
       // Multi-line variant - this is closer to the actual home.ks pattern
       final source = '''
 let x = [

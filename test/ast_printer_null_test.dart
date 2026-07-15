@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:krom_script/krom_script.dart';
 import 'package:krom_script/src/optimizer/optimizer.dart';
-import 'package:krom_script/src/ast/ast_printer.dart';
 
 /// Reproduces the bundler's optimize → print round-trip.
 String optimizePrint(String src) {

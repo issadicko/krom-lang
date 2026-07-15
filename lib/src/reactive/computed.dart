@@ -15,7 +15,7 @@ import '../interpreter/values.dart'; // import KromBindable
 /// ```
 class Computed implements Rx<Object?>, KromBindable {
   final Object? Function() _computeFn;
-  
+
   Object? _cachedValue;
   bool _isDirty = true;
   final Set<Rx> _dependencies = {};
@@ -27,7 +27,7 @@ class Computed implements Rx<Object?>, KromBindable {
   Object? get value {
     // Track this Computed in the current capture context (for nested Computed)
     RxNotifier.instance.captureDependency(this);
-    
+
     if (_isDirty) {
       _recalculate();
     }
@@ -37,7 +37,7 @@ class Computed implements Rx<Object?>, KromBindable {
   void _recalculate() {
     // Capture dependencies during computation
     RxNotifier.instance.startCapture();
-    
+
     try {
       _cachedValue = _computeFn();
       _isDirty = false;
@@ -87,15 +87,15 @@ class Computed implements Rx<Object?>, KromBindable {
       listener();
     }
   }
-  
+
   @override
   void clearListeners() {
     _listeners.clear();
   }
-  
+
   @override
   int get listenerCount => _listeners.length;
-  
+
   @override
   set value(Object? newValue) {
     // Computed values are read-only

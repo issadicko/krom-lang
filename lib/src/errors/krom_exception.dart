@@ -26,7 +26,8 @@ class KromRuntimeError extends KromException {
   KromRuntimeError(super.message, {super.line, super.column});
 
   @override
-  String toString() => 'RuntimeError: $message${line != null ? " at line $line" : ""}';
+  String toString() =>
+      'RuntimeError: $message${line != null ? " at line $line" : ""}';
 }
 
 /// Error thrown when script execution times out or exceeds operation limit.

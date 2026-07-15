@@ -39,11 +39,11 @@ void main() {
     test('access properties captures dependency', () {
       final list = RxList<int>([1]);
       final notifier = RxNotifier.instance;
-      
+
       notifier.startCapture();
       list.getProperty('length');
       final deps = notifier.stopCapture();
-      
+
       expect(deps, contains(list));
     });
 

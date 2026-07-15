@@ -25,7 +25,8 @@ void main() {
 
     test('Nested Braces not in Strings', () {
       // should work because parser counts braces
-      expect(KromScript.run('return "Obj: \${ {a:1} }"').value, contains('{a: 1}')); 
+      expect(KromScript.run('return "Obj: \${ {a:1} }"').value,
+          contains('{a: 1}'));
       // or whatever toString returns for ObjectLiteral (Map)
     });
 

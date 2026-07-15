@@ -112,12 +112,13 @@ class Parser {
   List<KromSyntaxError> get syntaxErrors => List.unmodifiable(_syntaxErrors);
 
   void _addSyntaxError(String message, Token token) {
-     _syntaxErrors.add(KromSyntaxError(message, line: token.line, column: token.column));
+    _syntaxErrors
+        .add(KromSyntaxError(message, line: token.line, column: token.column));
   }
 
   // Keeping _addError for now to minimize diffs, but redirecting
   void _addError(String message) {
-     _addSyntaxError(message, _curToken);
+    _addSyntaxError(message, _curToken);
   }
 
   void _nextToken() {
@@ -136,7 +137,7 @@ class Parser {
     _peekError(type); // Use specialized error helper
     return false;
   }
-  
+
   void _peekError(TokenType type) {
     _addSyntaxError('expected $type, got ${_peekToken.type}', _peekToken);
   }
@@ -398,7 +399,8 @@ class Parser {
     return NumberLiteral(_curToken, value);
   }
 
-  Expression _parseStringLiteral() => StringLiteral(_curToken, _curToken.literal);
+  Expression _parseStringLiteral() =>
+      StringLiteral(_curToken, _curToken.literal);
 
   Expression? _parseStringTemplate() {
     final token = _curToken;
@@ -410,7 +412,9 @@ class Parser {
       // Find next ${
       final start = i;
       while (i < literal.length &&
-          !(i + 1 < literal.length && literal[i] == '\$' && literal[i + 1] == '{')) {
+          !(i + 1 < literal.length &&
+              literal[i] == '\$' &&
+              literal[i + 1] == '{')) {
         i++;
       }
 
@@ -421,7 +425,9 @@ class Parser {
       }
 
       // If we found ${, parse the expression
-      if (i + 1 < literal.length && literal[i] == '\$' && literal[i + 1] == '{') {
+      if (i + 1 < literal.length &&
+          literal[i] == '\$' &&
+          literal[i + 1] == '{') {
         i += 2; // skip ${
 
         // Find matching }
@@ -469,10 +475,10 @@ class Parser {
         final expr = exprParser._parseExpression(_lowest);
 
         if (exprParser.errors().isNotEmpty) {
-           // We digest the errors from the sub-parser
-           for (final err in exprParser.syntaxErrors) {
-             _syntaxErrors.add(err);
-           }
+          // We digest the errors from the sub-parser
+          for (final err in exprParser.syntaxErrors) {
+            _syntaxErrors.add(err);
+          }
         }
 
         if (expr != null) {

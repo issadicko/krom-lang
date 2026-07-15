@@ -32,7 +32,7 @@ fn build() {
 
     final engine = KSEngine();
     expect(() => engine.load(source), returnsNormally);
-    
+
     final result = engine.invoke('build');
     expect(result, isNotNull);
     print('Result: $result');

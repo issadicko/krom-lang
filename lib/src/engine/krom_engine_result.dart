@@ -23,7 +23,8 @@ class KSEngineResult {
   });
 
   /// Creates a successful result.
-  factory KSEngineResult.success({Object? value, List<String> output = const []}) =>
+  factory KSEngineResult.success(
+          {Object? value, List<String> output = const []}) =>
       KSEngineResult._(value: value, output: output, success: true);
 
   /// Creates an error result.

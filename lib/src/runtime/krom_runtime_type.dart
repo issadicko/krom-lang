@@ -12,7 +12,8 @@ abstract class KromRuntimeType<T> {
   /// Calls a method on the target object.
   /// Returns `null` if the method is not found (or really returns null).
   /// Should throw [KromRuntimeError] if arguments are invalid.
-  Object? callMethod(T target, String name, List<Object?> args, KromFunctionInvoker invoker);
+  Object? callMethod(
+      T target, String name, List<Object?> args, KromFunctionInvoker invoker);
 }
 
 /// Registry for KromRuntimeType instances.
@@ -21,7 +22,7 @@ class TypeRegistry {
   static TypeRegistry get instance => _instance;
 
   final Map<Type, KromRuntimeType> _types = {};
-  
+
   // Register default types on instance creation or explicit init?
   // Make it public so we can register from external file
   void addType<T>(KromRuntimeType<T> type) {
@@ -39,22 +40,22 @@ class TypeRegistry {
   /// Returns `null` if no handler is registered for the type.
   KromRuntimeType<Object>? getHandler(Object? value) {
     if (value == null) return null;
-    
+
     // Direct match
     if (_types.containsKey(value.runtimeType)) {
-       return _types[value.runtimeType] as KromRuntimeType<Object>;
+      return _types[value.runtimeType] as KromRuntimeType<Object>;
     }
-    
+
     // Look for supertypes
     for (final entry in _types.entries) {
       if (checkType(value, entry.key)) {
         return entry.value as KromRuntimeType<Object>;
       }
     }
-    
+
     return null;
   }
-  
+
   // Helper to check type without mirrors
   bool checkType(Object value, Type type) {
     if (type == List && value is List) return true;
@@ -63,7 +64,7 @@ class TypeRegistry {
     if (type == int && value is int) return true;
     if (type == double && value is double) return true;
     if (type == bool && value is bool) return true;
-    
+
     return value.runtimeType == type;
   }
 }
