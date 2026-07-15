@@ -1,5 +1,4 @@
 import '../ast/ast.dart';
-import '../token/token.dart';
 
 /// ASTPrinter converts an AST back into KromScript source code.
 class ASTPrinter {

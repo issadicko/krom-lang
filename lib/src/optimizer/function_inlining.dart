@@ -1,5 +1,4 @@
 import '../ast/ast.dart';
-import '../token/token.dart';
 
 /// FunctionInliner replaces calls to small functions with their bodies.
 /// 

@@ -13,7 +13,6 @@ import '../interpreter/values.dart';
 import '../natives/natives.dart';
 import '../reactive/rx.dart';
 import '../errors/krom_exception.dart';
-import '../resolver/resolver.dart';
 import '../optimizer/optimizer.dart';
 import 'krom_engine_result.dart';
 import 'execution_limits.dart';
