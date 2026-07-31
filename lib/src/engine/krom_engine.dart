@@ -12,6 +12,7 @@ import '../interpreter/environment.dart';
 import '../interpreter/values.dart';
 import '../natives/natives.dart';
 import '../reactive/rx.dart';
+import '../runtime/numbers.dart';
 import '../errors/krom_exception.dart';
 import '../optimizer/optimizer.dart';
 import 'krom_engine_result.dart';
@@ -89,7 +90,7 @@ class KSEngine {
     if (env == null) return const {};
     final out = <String, Object?>{};
     env.toMap().forEach((name, value) {
-      if (value is Rx) out[name] = value.value;
+      if (value is Rx) out[name] = kromCanonicalValue(value.value);
     });
     return out;
   }
@@ -223,9 +224,10 @@ class KSEngine {
       _env!.set(name, value);
     });
 
-    // Apply variables
+    // Apply variables. Host variables enter through THE RULE — see
+    // `runtime/numbers.dart`.
     _variables.forEach((name, value) {
-      _env!.set(name, value);
+      _env!.set(name, kromCanonicalValue(value));
     });
 
     // Resolve static scopes for optimized variable lookup
@@ -277,7 +279,8 @@ class KSEngine {
 
     // callFunction can throw KromRuntimeError, which is what we want to propagate
     _applyLimits();
-    return _interpreter!.callFunction(funcValue, args);
+    return kromCanonicalValue(_interpreter!
+        .callFunction(funcValue, args.map(kromCanonicalValue).toList()));
   }
 
   KSEngineResult invokeSynchronized(String funcName,
@@ -299,9 +302,12 @@ class KSEngine {
 
     try {
       _applyLimits();
-      final result = _interpreter!.callFunction(funcValue, args);
+      // Host arguments in, result out: both cross THE RULE — see
+      // `runtime/numbers.dart`.
+      final result = _interpreter!
+          .callFunction(funcValue, args.map(kromCanonicalValue).toList());
       return KSEngineResult.success(
-        value: result,
+        value: kromCanonicalValue(result),
         output: _interpreter!.getOutput(),
       );
     } on KromException catch (e) {
@@ -317,7 +323,7 @@ class KSEngine {
   Object? getVariable(String name) {
     if (_env == null) return null;
     final (value, found) = _env!.get(name);
-    return found ? value : null;
+    return found ? kromCanonicalValue(value) : null;
   }
 
   /// The variable values to apply when loading a script.
@@ -329,8 +335,10 @@ class KSEngine {
   ///
   /// This can be used to inject values from the host application.
   void setVariable(String name, Object? value) {
-    _variables[name] = value;
-    _env?.set(name, value);
+    // Host variables enter through THE RULE — see `runtime/numbers.dart`.
+    final canonical = kromCanonicalValue(value);
+    _variables[name] = canonical;
+    _env?.set(name, canonical);
   }
 
   /// Binds a Dart object to the script context.

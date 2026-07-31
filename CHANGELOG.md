@@ -1,5 +1,37 @@
 # Changelog
 
+## Non publié
+
+### Breaking Changes
+
+- **Une seule représentation numérique à la frontière hôte** (#14). Le type
+  Dart d'un nombre ne dépend plus du chemin par lequel le script l'a atteint :
+  un nombre entier est un `int`, un nombre fractionnaire un `double`. Avant,
+  `m.n` et `m["n"]` rendaient `3` (donnée hôte intacte) alors que `1 + 1` et
+  `l.length` rendaient `2.0` et `3.0` (chemin calculé / réflexif) — le même
+  champ se sérialisait donc en `3` ou en `3.0` selon qu'un script l'avait
+  touché ou non.
+
+  La règle est énoncée une seule fois, dans `lib/src/runtime/numbers.dart`
+  (`kromCanonicalNumber` / `kromCanonicalValue`, tous deux exportés), et
+  appliquée à chaque passage : variables hôte entrantes, `ScriptResult.value`,
+  `KSEngineResult.value`, `KSEngine.invokeSync` / `getVariable` /
+  `reactiveState`, et les deux sens de `KromBindable`. `kromDisplay` rend
+  désormais les nombres via cette même règle.
+
+  L'arithmétique est inchangée : l'interpréteur calcule toujours en `double`,
+  la division, le modulo et les débordements se comportent à l'identique. La
+  sortie de `print()` est inchangée elle aussi (`print(1 + 1)` affiche
+  toujours `2`), tout comme `jsonStringify`, qui garde son encodage réseau.
+
+### Migration
+
+- Un appelant qui écrivait `result.value as double` doit écrire
+  `(result.value as num).toDouble()` — de même pour les arguments reçus par un
+  `KromBindable.callMethod`, qui arrivent maintenant sous forme canonique.
+  Les comparaisons de valeur (`result.value == 2.0`) restent vraies : en Dart
+  `2 == 2.0`.
+
 ## 1.0.1
 
 Qualité du paquet (aucun changement d'API ni de comportement) :

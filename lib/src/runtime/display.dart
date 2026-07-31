@@ -1,27 +1,22 @@
 /// Human-facing stringification of KromScript values.
 library;
 
+import 'numbers.dart';
+
 /// Converts a KromScript value to its display string.
 ///
-/// KromScript has a single number type (Dart doubles), so `3` would naïvely
-/// display as `3.0` everywhere — `toString`, string interpolation, `+`
-/// concatenation, `print`. This helper renders whole numbers without the
-/// trailing `.0` while leaving true decimals untouched.
+/// KromScript has a single number type and the interpreter computes on Dart
+/// doubles, so `3` would naïvely display as `3.0` everywhere — `toString`,
+/// string interpolation, `+` concatenation, `print`. Numbers are rendered
+/// through [kromCanonicalNumber], the single numeric rule (see
+/// `runtime/numbers.dart`), so a whole number prints without its trailing `.0`
+/// whichever Dart spelling it arrived in and true decimals stay untouched.
 ///
 /// This is a DISPLAY rule only: `jsonStringify` (wire format) is deliberately
 /// not routed through it, so payloads keep their numeric JSON encoding.
 String kromDisplay(Object? value) {
   if (value == null) return 'null';
-  if (value is double) {
-    // Doubles are exact integers well past 1e15; beyond that .truncate()
-    // could overflow or lose digits, so fall back to the default rendering.
-    if (value.isFinite &&
-        value.abs() < 1e15 &&
-        value == value.truncateToDouble()) {
-      return value.truncate().toString();
-    }
-    return value.toString();
-  }
+  if (value is num) return kromCanonicalNumber(value).toString();
   if (value is List) {
     return '[${value.map(kromDisplay).join(', ')}]';
   }
