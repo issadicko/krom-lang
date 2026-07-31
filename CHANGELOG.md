@@ -1,5 +1,31 @@
 # Changelog
 
+## Non publié
+
+### Sûreté (changement de comportement)
+
+- **La garde d'exécution s'applique enfin à `KromScript`.** `ExecutionLimits`
+  se documentait « sûr par défaut » mais n'était câblée que dans `KSEngine` :
+  `KromScript.eval`, `KromScript.run` et `KromScript.builder(...).execute()`
+  s'exécutaient sans budget d'opérations ni deadline, si bien que
+  `while (true) { }` figeait l'hôte. Ces trois points d'entrée tournent
+  désormais sous `ExecutionLimits()` (10 000 000 opérations, 1 s).
+- **Nouveau `KromScriptBuilder.withLimits(ExecutionLimits)`** et paramètre
+  nommé `limits` sur `KromScript.run` / `KromScript.eval` : le type documenté
+  est maintenant atteignable depuis l'API publique.
+- `withMaxOperations()` et `withTimeout()` restent valables — ils *surchargent*
+  désormais la borne correspondante au lieu d'être le seul moyen d'en avoir
+  une, et réarment la garde si elle avait été désactivée.
+- Une seule implémentation de l'application des bornes
+  (`ExecutionLimits.applyTo`), partagée par `KromScript` et `KSEngine`, pour
+  que les deux chemins ne puissent plus diverger.
+
+**Migration** : un script qui bouclait sans fin échoue maintenant avec
+`KromResourceError` au lieu de tourner indéfiniment. Un script légitime reste
+très en deçà des bornes. Pour du code de confiance qui doit tourner sans
+limite, l'option est explicite : `withLimits(ExecutionLimits.unlimited)` (ou
+`limits: ExecutionLimits.unlimited`).
+
 ## 1.0.1
 
 Qualité du paquet (aucun changement d'API ni de comportement) :
