@@ -241,6 +241,59 @@ void main() {
       });
     });
 
+    group('jsonStringify, the wire format', () {
+      test('encodes a whole number without a trailing .0', () {
+        expect(KromScript.eval('jsonStringify(1 + 1)'), '2');
+        expect(KromScript.eval('jsonStringify({ n: 3 })'), '{"n":3}');
+      });
+
+      test('leaves a fractional number alone', () {
+        expect(KromScript.eval('jsonStringify({ n: 2.5 })'), '{"n":2.5}');
+      });
+
+      test('recurses into nested lists and maps', () {
+        expect(
+          KromScript.eval(
+              'jsonStringify({ a: [1, 2.5, [3]], b: { c: 4 / 2 } })'),
+          '{"a":[1,2.5,[3]],"b":{"c":2}}',
+        );
+      });
+
+      test('encodes host data the same however the script reached it', () {
+        final vars = {
+          'm': {'n': 3},
+          'l': [1, 2, 3],
+        };
+        for (final source in [
+          'jsonStringify(m.n)',
+          'jsonStringify(l.length)'
+        ]) {
+          expect(KromScript.run(source, variables: vars).value, '3',
+              reason: source);
+        }
+      });
+
+      test('round-trips stably through jsonParse', () {
+        const body = '{"items":[1,2],"qty":3,"rate":2.5,"name":"x,y"}';
+        // The property a twin engine depends on: parse then re-encode must
+        // give back the same bytes, and stay stable when re-applied.
+        expect(
+            KromScript.eval('jsonStringify(jsonParse("${body.replaceAll(
+              '"',
+              '\\"',
+            )}"))'),
+            body);
+      });
+
+      test('a computed number re-encodes to what it parsed from', () {
+        expect(
+          KromScript.eval(
+              'jsonStringify({ n: jsonParse("{\\"n\\":2}").n + 0 })'),
+          '{"n":2}',
+        );
+      });
+    });
+
     group('display is unaffected', () {
       test('print() renders an integral result without a trailing .0', () {
         expect(KromScript.run('print(1 + 1)').output, ['2']);

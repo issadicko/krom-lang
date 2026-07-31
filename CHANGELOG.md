@@ -21,8 +21,21 @@
 
   L'arithmétique est inchangée : l'interpréteur calcule toujours en `double`,
   la division, le modulo et les débordements se comportent à l'identique. La
-  sortie de `print()` est inchangée elle aussi (`print(1 + 1)` affiche
-  toujours `2`), tout comme `jsonStringify`, qui garde son encodage réseau.
+  sortie de `print()` et l'interpolation sont inchangées elles aussi
+  (`print(1 + 1)` affiche toujours `2`).
+
+- **`jsonStringify` suit la même règle** — `jsonStringify({ n: 3 })` rend
+  désormais `{"n":3}` au lieu de `{"n":3.0}`, récursivement dans les listes et
+  les maps. Cela **révoque la décision de 1.0.0** qui gardait l'encodage JSON
+  de Dart au nom du « format réseau préservé ».
+
+  Motif : ce moteur est l'un de trois jumeaux (Go côté serveur, TypeScript côté
+  web, Dart côté mobile) qui doivent produire des corps JSON identiques octet
+  pour octet. Go et TypeScript sérialisent `2`, pas `2.0` : le format réseau
+  que le canon spécifie est bien `2`, et c'était donc la divergence, non la
+  préservation. `jsonParse` est déjà canonique (`jsonDecode` rend un `int` pour
+  un littéral entier), donc `jsonStringify(jsonParse(s))` fait maintenant un
+  aller-retour stable.
 
 ### Migration
 
@@ -31,6 +44,9 @@
   `KromBindable.callMethod`, qui arrivent maintenant sous forme canonique.
   Les comparaisons de valeur (`result.value == 2.0`) restent vraies : en Dart
   `2 == 2.0`.
+- Qui analyse la sortie de `jsonStringify` en attendant `2.0` doit accepter
+  `2`. Un consommateur JSON standard n'est pas concerné : `2` et `2.0` s'y
+  décodent sur le même nombre.
 
 ## 1.0.1
 

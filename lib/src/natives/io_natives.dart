@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../runtime/numbers.dart';
 import 'natives.dart';
 import 'native_helpers.dart';
 
@@ -15,12 +16,19 @@ void registerIONatives(NativeFunctions registry) {
 
 Object? _nativeJsonParse(List<Object?> args) {
   requireArgs(args, 1, 'jsonParse');
+  // `jsonDecode` already yields `int` for an integral literal and `double` for
+  // a fractional one — the canonical form. Nothing to convert.
   return jsonDecode(getArgAsString(args, 0, 'jsonParse'));
 }
 
 Object? _nativeJsonStringify(List<Object?> args) {
   requireArgs(args, 1, 'jsonStringify');
-  return jsonEncode(args[0]);
+  // The wire format is a boundary like any other: encode through THE RULE (see
+  // `runtime/numbers.dart`) so a whole number serialises as `2`, not `2.0`, and
+  // a body built here is byte-identical to the Go and TypeScript twins'.
+  // `kromCanonicalValue` recurses into lists and maps, so nested numbers are
+  // covered too, and `jsonStringify(jsonParse(s))` round-trips stably.
+  return jsonEncode(kromCanonicalValue(args[0]));
 }
 
 // ============ Base64 functions ============

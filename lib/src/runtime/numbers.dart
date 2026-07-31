@@ -29,14 +29,17 @@ library;
 ///   `KSEngine.invokeSync`, `KSEngine.getVariable`, `KSEngine.reactiveState`
 /// * both directions of `KromBindable` — property and method results coming in,
 ///   call arguments going out
+/// * the wire format — `jsonStringify`, so a body built in-script matches the
+///   Go and TypeScript twins byte for byte, and `jsonStringify(jsonParse(s))`
+///   round-trips stably (`jsonDecode` already yields canonical numbers)
+/// * printed output — [kromDisplay] renders numbers through this same rule
 ///
-/// Deliberately *not* applied to three things, so that this stays one rule and
+/// Deliberately *not* applied to two things, so that this stays one rule and
 /// not a rule plus a habit:
 ///
 /// * arguments of native functions (`registerFunction`), which share the
 ///   interpreter's own dispatch with the built-ins — what they receive is an
 ///   interpreter value, so declare them `num`;
-/// * `jsonStringify`, the in-script wire format, unchanged since 1.0.0;
 /// * `KSEngine.getState()`, a debug dump of the raw environment (functions,
 ///   natives, `Rx` wrappers) rather than a value channel.
 num kromCanonicalNumber(num value) {
