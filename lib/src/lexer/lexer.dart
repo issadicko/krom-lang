@@ -1,6 +1,9 @@
 /// KromScript Lexer - Tokenizes source code.
 library;
 
+import 'dart:collection';
+
+import '../errors/krom_exception.dart';
 import '../token/token.dart';
 
 /// Lexer tokenizes KromScript source code.
@@ -14,8 +17,24 @@ class Lexer {
 
   Token? _prevToken;
 
+  final List<KromSyntaxError> _syntaxErrors = [];
+  late final List<KromSyntaxError> _syntaxErrorsView =
+      UnmodifiableListView(_syntaxErrors);
+
   Lexer(this._input) {
     _readChar();
+  }
+
+  /// Lexical errors found so far, in source order.
+  ///
+  /// The lexer never throws: it records the error, returns the best token it
+  /// can, and keeps scanning. The parser drains this list into its own errors,
+  /// so callers only ever read one error list.
+  List<KromSyntaxError> get syntaxErrors => _syntaxErrorsView;
+
+  void _addSyntaxError(String message,
+      {required int line, required int column}) {
+    _syntaxErrors.add(KromSyntaxError(message, line: line, column: column));
   }
 
   void _readChar() {
@@ -188,7 +207,12 @@ class Lexer {
       case '"':
       case "'":
         final delimiter = _ch;
+        final startLine = _line;
         final result = _readString(delimiter);
+        if (!result.terminated) {
+          _addSyntaxError('unterminated string literal',
+              line: startLine, column: startColumn);
+        }
         final type =
             result.isTemplate ? TokenType.stringTemplate : TokenType.string;
         tok = Token(type, result.value, line: _line, column: startColumn);
@@ -276,7 +300,13 @@ class Lexer {
     return _input.substring(start, _position);
   }
 
-  ({String value, bool isTemplate}) _readString(String delimiter) {
+  /// Reads a string literal, starting on its opening delimiter.
+  ///
+  /// `terminated` is false when the literal ran to EOF without its closing
+  /// delimiter; the value read so far is still returned so the parser can
+  /// carry on and report the rest of the source.
+  ({String value, bool isTemplate, bool terminated}) _readString(
+      String delimiter) {
     _readChar(); // skip opening delimiter
     final buffer = StringBuffer();
     var isTemplate = false;
@@ -342,7 +372,13 @@ class Lexer {
       }
       _readChar();
     }
-    return (value: buffer.toString(), isTemplate: isTemplate);
+    // The loop only stops on the closing delimiter or on EOF.
+    final terminated = _ch == delimiter;
+    return (
+      value: buffer.toString(),
+      isTemplate: isTemplate,
+      terminated: terminated
+    );
   }
 
   bool _isLetter(String ch) {

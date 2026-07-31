@@ -1,5 +1,25 @@
 # Changelog
 
+## Non publié
+
+Correction — deux sources tronquées passaient la validation à l'analyse (#12) :
+
+- **Chaîne non terminée** : le lexeur signale désormais
+  `unterminated string literal`, à la ligne et à la colonne du guillemet
+  ouvrant, pour les deux styles de guillemets (`"` et `'`). Un guillemet
+  échappé (`\"`) ne ferme plus la chaîne par accident.
+- **Bloc non fermé** : un bloc qui atteint la fin du fichier sans son `}`
+  produit `expected TokenType.rbrace, got TokenType.eof`, exactement comme le
+  font déjà `(` et `[`.
+
+Les erreurs lexicales remontent par la liste `Parser.errors()` existante — pas
+de seconde API d'erreurs : `KromScript.run`, `KromEngine.load` et tout appel à
+`Parser(Lexer(src)).parseProgram()` les voient sans changement côté appelant.
+
+**Impact** — des sources jusqu'ici acceptées puis exécutées sont maintenant
+rejetées à l'analyse. C'est l'intention : elles ne pouvaient s'exécuter
+qu'avec une sémantique différente de celle écrite.
+
 ## 1.0.1
 
 Qualité du paquet (aucun changement d'API ni de comportement) :
