@@ -177,6 +177,13 @@ class KromMapType extends KromRuntimeType<Map> {
   }
 
   @override
+  bool hasProperty(Map target, String name, KromFunctionInvoker invoker) {
+    // A key that is present but holds null is still a property of the map.
+    return target.containsKey(name) ||
+        getProperty(target, name, invoker) != null;
+  }
+
+  @override
   Object? callMethod(Map target, String name, List<Object?> args,
       KromFunctionInvoker invoker) {
     return null;
