@@ -2,7 +2,9 @@
 
 ## Non publié
 
-Correction — deux sources tronquées passaient la validation à l'analyse (#12) :
+### Analyse — sources tronquées rejetées (#12)
+
+Deux sources tronquées passaient la validation à l'analyse :
 
 - **Chaîne non terminée** : le lexeur signale désormais
   `unterminated string literal`, à la ligne et à la colonne du guillemet
@@ -19,6 +21,40 @@ de seconde API d'erreurs : `KromScript.run`, `KromEngine.load` et tout appel à
 **Impact** — des sources jusqu'ici acceptées puis exécutées sont maintenant
 rejetées à l'analyse. C'est l'intention : elles ne pouvaient s'exécuter
 qu'avec une sémantique différente de celle écrite.
+
+### Ordre — plus de coercition des opérandes non numériques (#15)
+
+- **Opérateurs d'ordre (`<`, `>`, `<=`, `>=`)** — ils ne coercent plus les
+  opérandes non numériques vers `0.0` (#15). `null < 5` répondait `true` :
+  dans un moteur de règles, `age < 18` sur un champ non rempli déclenchait une
+  validation qui devait rester dormante.
+
+  L'ordre n'est désormais défini que sur les nombres et les chaînes qui se
+  parsent comme des nombres. Tout autre opérande — `null`, booléen, map,
+  liste, fonction, chaîne non numérique — rend la comparaison indéfinie, et
+  une comparaison indéfinie vaut **`false`**, des deux côtés et pour les
+  quatre opérateurs. Sur une donnée absente, `age < 18` et `age >= 18` sont
+  donc tous les deux faux : aucune règle d'ordre ne se déclenche sur une
+  valeur qu'on n'a pas.
+
+  Une chaîne numérique continue de se comparer numériquement (`"10" > 5` vaut
+  toujours `true`). L'égalité (`==` / `!=`), l'arithmétique et `sort()` sont
+  inchangées.
+
+### Migration
+
+**#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
+
+- `null < 5`, `"abc" < 5`, `true < 5`, `[…] < 5`, `{…} < 5` passent de `true`
+  à `false` (et de même dans le sens miroir, `5 > null`, etc.).
+- `null <= null` et `"abc" <= "abc"` passent de `true` à `false` : deux
+  opérandes non ordonnables ne sont pas « égaux » au sens de l'ordre. Utiliser
+  `==` pour tester l'égalité.
+- L'identité `!(a < b) == (a >= b)` n'est plus garantie quand un opérande
+  n'est pas ordonnable — comme pour `NaN` en IEEE-754 et en JavaScript.
+
+Un script qui doit distinguer « absent » de « comparé » teste explicitement
+`x == null` (ou `x ?: valeurParDéfaut`) avant la comparaison.
 
 ## 1.0.1
 

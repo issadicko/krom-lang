@@ -452,13 +452,10 @@ class Interpreter implements KromFunctionInvoker {
       case '!=':
         return left != right;
       case '<':
-        return _toNumber(left) < _toNumber(right);
       case '>':
-        return _toNumber(left) > _toNumber(right);
       case '<=':
-        return _toNumber(left) <= _toNumber(right);
       case '>=':
-        return _toNumber(left) >= _toNumber(right);
+        return _compareOrdered(left, expr.operator, right);
       default:
         throw Exception('unknown operator: ${expr.operator}');
     }
@@ -647,11 +644,71 @@ class Interpreter implements KromFunctionInvoker {
     return true;
   }
 
+  /// Numeric coercion for arithmetic (`+`, `-`, `*`, `/`, `%`, unary `-`) and
+  /// for list indices. Falls back to 0.0.
+  ///
+  /// Deliberately *not* used by the ordering operators: see [_compareOrdered].
   double _toNumber(Object? value) {
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
+  }
+
+  // ============ Ordering ============
+  //
+  // THE RULE — `<`, `>`, `<=` and `>=` are defined only over numbers and
+  // strings that parse as numbers. Any other operand — null, bool, map, list,
+  // function, non-numeric string — is not orderable: the comparison is
+  // undefined and evaluates to **false**, on either side, for all four
+  // operators.
+  //
+  // Why false and not an answer: an unfilled field is null, and coercing it to
+  // 0.0 — the behaviour up to 1.0.1, issue #15 — made `age < 18` true, firing
+  // a validation rule that should have stayed dormant. Under this rule
+  // `age < 18` and `age >= 18` are *both* false on unknown data, so no
+  // ordering rule fires on a value we do not have. That intentionally breaks
+  // the identity `!(a < b) == (a >= b)`, exactly as IEEE-754 NaN and
+  // JavaScript do.
+  //
+  // Why not JavaScript's coercion: JS propagates NaN the same way, but its
+  // ToNumber is permissive (null -> 0, true -> 1, [] -> 0), so JS itself
+  // answers `null < 5 === true`. KromScript has no `undefined`; null is its
+  // single absent value — an unfilled field, a missing map key, an
+  // out-of-range index, `?.` on null — so it behaves like JS's `undefined`,
+  // which is NaN. Equality (`==` / `!=`) is unaffected.
+
+  /// Applies the ordering rule above to one comparison.
+  bool _compareOrdered(Object? left, String op, Object? right) {
+    final l = _toOrderableNumber(left);
+    final r = _toOrderableNumber(right);
+
+    // Stated explicitly rather than left to IEEE-754: an undefined comparison
+    // is false for every operator, `<=` and `>=` included.
+    if (l.isNaN || r.isNaN) return false;
+
+    switch (op) {
+      case '<':
+        return l < r;
+      case '>':
+        return l > r;
+      case '<=':
+        return l <= r;
+      case '>=':
+        return l >= r;
+      default:
+        throw Exception('unknown ordering operator: $op');
+    }
+  }
+
+  /// The orderable numeric value of [value], or [double.nan] if it has none.
+  double _toOrderableNumber(Object? value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    // A numeric string keeps comparing numerically ("10" > 5); a string that
+    // is not a number does not.
+    if (value is String) return double.tryParse(value) ?? double.nan;
+    return double.nan;
   }
 
   // ============ Bindable Object Support ============
