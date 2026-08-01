@@ -115,16 +115,7 @@ class KSEngine {
   void _applyLimits() {
     final i = _interpreter;
     if (i == null) return;
-    if (_limits.enabled) {
-      i.setMaxOperations(_limits.maxOperations);
-      i.setDeadline(_limits.deadline > Duration.zero
-          ? DateTime.now().millisecondsSinceEpoch +
-              _limits.deadline.inMilliseconds
-          : 0);
-    } else {
-      i.setMaxOperations(0);
-      i.setDeadline(0);
-    }
+    _limits.applyTo(i);
   }
 
   /// Creates a new KSEngine instance.

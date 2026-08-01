@@ -55,7 +55,7 @@ void main() {
       expect(result.hasErrors, isTrue);
     });
 
-    test('no limit by default', () {
+    test('default budget leaves a small script alone', () {
       final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
@@ -68,7 +68,7 @@ void main() {
       expect(result.hasErrors, isFalse);
     });
 
-    test('zero means unlimited', () {
+    test('zero means unlimited operations', () {
       final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5]) {

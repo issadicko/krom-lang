@@ -1,7 +1,11 @@
-/// Limits applied to every script execution (top-level load, `build()`,
-/// callbacks, reactive builders) so a misbehaving — or hostile — mini-app
-/// cannot hang the host: an **operation budget** and a **wall-clock deadline**,
-/// both enforced by the interpreter at each statement and loop iteration.
+import '../interpreter/interpreter.dart';
+
+/// Limits applied to every script execution — `KromScript.eval` / `run` /
+/// `builder(...).execute()` as well as the mini-app engine (top-level load,
+/// `build()`, callbacks, reactive builders) — so a misbehaving — or hostile —
+/// mini-app cannot hang the host: an **operation budget** and a **wall-clock
+/// deadline**, both enforced by the interpreter at each statement and loop
+/// iteration.
 ///
 /// **Safe by default**: enabled with generous bounds. A legitimate build or
 /// callback runs a few thousand operations in well under the deadline, so it is
@@ -9,7 +13,9 @@
 /// ([KromResourceError]) instead of looping forever.
 ///
 /// The host SDK integrator can tune the bounds or disable the guard entirely
-/// ([ExecutionLimits.unlimited]) for trusted / first-party code.
+/// ([ExecutionLimits.unlimited]) for trusted / first-party code. Disabling is
+/// deliberately explicit and greppable — there is no way to end up unguarded by
+/// omission.
 ///
 /// NB: the guard is *cooperative* and runs on the caller's thread, so a
 /// bounded-but-heavy execution still costs up to [deadline] of jank before it
@@ -40,6 +46,22 @@ class ExecutionLimits {
     maxOperations: 0,
     deadline: Duration.zero,
   );
+
+  /// Arms [interpreter] with this guard: resets the per-execution operation
+  /// counter and sets a fresh wall-clock deadline. Call once immediately before
+  /// each execution — every path to the interpreter goes through here, so the
+  /// entry points cannot drift apart.
+  void applyTo(Interpreter interpreter) {
+    if (!enabled) {
+      interpreter.setMaxOperations(0);
+      interpreter.setDeadline(0);
+      return;
+    }
+    interpreter.setMaxOperations(maxOperations);
+    interpreter.setDeadline(deadline > Duration.zero
+        ? DateTime.now().millisecondsSinceEpoch + deadline.inMilliseconds
+        : 0);
+  }
 
   ExecutionLimits copyWith({
     bool? enabled,

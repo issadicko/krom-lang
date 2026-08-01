@@ -66,6 +66,30 @@ qu'avec une sémantique différente de celle écrite.
   comprises — et ne court-circuite que sur un receveur `null`. `a?.b` et `a.b`
   ne diffèrent plus que sur ce point.
 
+### Garde d'exécution — appliquée par défaut (#13)
+
+- **La garde d'exécution s'applique enfin à `KromScript`.** `ExecutionLimits`
+  se documentait « sûr par défaut » mais n'était câblée que dans `KSEngine` :
+  `KromScript.eval`, `KromScript.run` et `KromScript.builder(...).execute()`
+  s'exécutaient sans budget d'opérations ni deadline, si bien que
+  `while (true) { }` figeait l'hôte. Ces trois points d'entrée tournent
+  désormais sous `ExecutionLimits()` (10 000 000 opérations, 1 s).
+- **Nouveau `KromScriptBuilder.withLimits(ExecutionLimits)`** et paramètre
+  nommé `limits` sur `KromScript.run` / `KromScript.eval` : le type documenté
+  est maintenant atteignable depuis l'API publique.
+- `withMaxOperations()` et `withTimeout()` restent valables — ils *surchargent*
+  désormais la borne correspondante au lieu d'être le seul moyen d'en avoir
+  une, et réarment la garde si elle avait été désactivée.
+- Une seule implémentation de l'application des bornes
+  (`ExecutionLimits.applyTo`), partagée par `KromScript` et `KSEngine`, pour
+  que les deux chemins ne puissent plus diverger.
+
+**Migration** : un script qui bouclait sans fin échoue maintenant avec
+`KromResourceError` au lieu de tourner indéfiniment. Un script légitime reste
+très en deçà des bornes. Pour du code de confiance qui doit tourner sans
+limite, l'option est explicite : `withLimits(ExecutionLimits.unlimited)` (ou
+`limits: ExecutionLimits.unlimited`).
+
 ### Migration
 
 **#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
@@ -81,7 +105,9 @@ qu'avec une sémantique différente de celle écrite.
 Un script qui doit distinguer « absent » de « comparé » teste explicitement
 `x == null` (ou `x ?: valeurParDéfaut`) avant la comparaison.
 
-**#10 / #11 — résolution de propriété.** - Un code qui s'appuyait sur la levée d'exception pour détecter une propriété
+**#10 / #11 — résolution de propriété.**
+
+- Un code qui s'appuyait sur la levée d'exception pour détecter une propriété
   manquante reçoit maintenant `null`. C'est l'objet du correctif, mais le
   changement est visible : tester `x == null`, ou `x ?: défaut`.
 - `?.` sur un receveur qui n'expose rien (nombre, booléen, objet hôte non

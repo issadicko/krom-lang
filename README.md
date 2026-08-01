@@ -107,14 +107,33 @@ Cela permet à vos utilisateurs d'écrire des scripts puissants tout en gardant 
 
 ## API Reference
 
-### KromScript.eval(source)
+### KromScript.eval(source, {limits})
 Evaluates a script and returns the result value.
 
-### KromScript.run(source, {variables})
+### KromScript.run(source, {variables, limits})
 Runs a script with optional variables and returns `ScriptResult`.
 
 ### KromScript.builder(source)
 Creates a builder for advanced configuration.
+
+### Execution guard
+
+Every entry point runs under `ExecutionLimits()` — an operation budget and a
+wall-clock deadline — so an infinite loop fails with a resource error instead of
+hanging the host. Tune it, or opt out explicitly for trusted first-party code:
+
+```dart
+// Tighter budget than the default.
+KromScript.builder(source)
+    .withLimits(const ExecutionLimits(deadline: Duration(milliseconds: 200)))
+    .execute();
+
+// No budget, no deadline — trusted code only.
+KromScript.builder(source).withLimits(ExecutionLimits.unlimited).execute();
+```
+
+`withMaxOperations(n)` and `withTimeout(d)` override one bound each and leave the
+other at its default.
 
 ## Native Functions
 
