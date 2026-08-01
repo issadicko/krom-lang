@@ -54,6 +54,7 @@ class Parser {
   Token _curToken = const Token(TokenType.eof, '');
   Token _peekToken = const Token(TokenType.eof, '');
   final List<KromSyntaxError> _syntaxErrors = [];
+  int _drainedLexerErrors = 0;
 
   final Map<TokenType, Expression? Function()> _prefixParseFns = {};
   final Map<TokenType, Expression? Function(Expression)> _infixParseFns = {};
@@ -124,6 +125,18 @@ class Parser {
   void _nextToken() {
     _curToken = _peekToken;
     _peekToken = _lexer.nextToken();
+    _drainLexerErrors();
+  }
+
+  /// Moves the errors the lexer just produced into [_syntaxErrors], so a
+  /// lexical problem (an unterminated string literal) is reported through the
+  /// same [errors] list as a syntax one, at the point of the offending token.
+  void _drainLexerErrors() {
+    final lexed = _lexer.syntaxErrors;
+    for (var i = _drainedLexerErrors; i < lexed.length; i++) {
+      _syntaxErrors.add(lexed[i]);
+    }
+    _drainedLexerErrors = lexed.length;
   }
 
   bool _curTokenIs(TokenType type) => _curToken.type == type;
@@ -138,8 +151,11 @@ class Parser {
     return false;
   }
 
-  void _peekError(TokenType type) {
-    _addSyntaxError('expected $type, got ${_peekToken.type}', _peekToken);
+  void _peekError(TokenType type) => _expectedError(type, _peekToken);
+
+  /// Same message shape as [_peekError], for a token already in cur position.
+  void _expectedError(TokenType type, Token got) {
+    _addSyntaxError('expected $type, got ${got.type}', got);
   }
 
   int _peekPrecedence() => _precedences[_peekToken.type] ?? _lowest;
@@ -272,7 +288,9 @@ class Parser {
 
     while (!_curTokenIs(TokenType.rbrace) && !_curTokenIs(TokenType.eof)) {
       _consumeEndOfStatement();
-      if (_curTokenIs(TokenType.rbrace)) break;
+      // Separators can run to EOF; leave before parsing a statement that isn't
+      // there, so an unclosed block reports the missing brace and nothing else.
+      if (_curTokenIs(TokenType.rbrace) || _curTokenIs(TokenType.eof)) break;
 
       final stmt = _parseStatement();
       if (stmt != null) {
@@ -280,6 +298,12 @@ class Parser {
       }
       _nextToken();
       _consumeEndOfStatement();
+    }
+
+    // The loop also stops on EOF: a block that never closes is a syntax error,
+    // reported like any other unbalanced delimiter.
+    if (!_curTokenIs(TokenType.rbrace)) {
+      _expectedError(TokenType.rbrace, _curToken);
     }
 
     return block;

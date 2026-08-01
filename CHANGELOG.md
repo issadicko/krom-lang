@@ -2,7 +2,46 @@
 
 ## Non publié
 
-### Correctifs
+### Analyse — sources tronquées rejetées (#12)
+
+Deux sources tronquées passaient la validation à l'analyse :
+
+- **Chaîne non terminée** : le lexeur signale désormais
+  `unterminated string literal`, à la ligne et à la colonne du guillemet
+  ouvrant, pour les deux styles de guillemets (`"` et `'`). Un guillemet
+  échappé (`\"`) ne ferme plus la chaîne par accident.
+- **Bloc non fermé** : un bloc qui atteint la fin du fichier sans son `}`
+  produit `expected TokenType.rbrace, got TokenType.eof`, exactement comme le
+  font déjà `(` et `[`.
+
+Les erreurs lexicales remontent par la liste `Parser.errors()` existante — pas
+de seconde API d'erreurs : `KromScript.run`, `KromEngine.load` et tout appel à
+`Parser(Lexer(src)).parseProgram()` les voient sans changement côté appelant.
+
+**Impact** — des sources jusqu'ici acceptées puis exécutées sont maintenant
+rejetées à l'analyse. C'est l'intention : elles ne pouvaient s'exécuter
+qu'avec une sémantique différente de celle écrite.
+
+### Ordre — plus de coercition des opérandes non numériques (#15)
+
+- **Opérateurs d'ordre (`<`, `>`, `<=`, `>=`)** — ils ne coercent plus les
+  opérandes non numériques vers `0.0` (#15). `null < 5` répondait `true` :
+  dans un moteur de règles, `age < 18` sur un champ non rempli déclenchait une
+  validation qui devait rester dormante.
+
+  L'ordre n'est désormais défini que sur les nombres et les chaînes qui se
+  parsent comme des nombres. Tout autre opérande — `null`, booléen, map,
+  liste, fonction, chaîne non numérique — rend la comparaison indéfinie, et
+  une comparaison indéfinie vaut **`false`**, des deux côtés et pour les
+  quatre opérateurs. Sur une donnée absente, `age < 18` et `age >= 18` sont
+  donc tous les deux faux : aucune règle d'ordre ne se déclenche sur une
+  valeur qu'on n'a pas.
+
+  Une chaîne numérique continue de se comparer numériquement (`"10" > 5` vaut
+  toujours `true`). L'égalité (`==` / `!=`), l'arithmétique et `sort()` sont
+  inchangées.
+
+### Résolution de propriété — null et absent lus comme null (#10, #11)
 
 - **Propriété nulle ou absente** — `m.vide` et `m.absent` valent désormais
   `null` au lieu de lever `cannot access property … : object must implement
@@ -29,7 +68,20 @@
 
 ### Migration
 
-- Un code qui s'appuyait sur la levée d'exception pour détecter une propriété
+**#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
+
+- `null < 5`, `"abc" < 5`, `true < 5`, `[…] < 5`, `{…} < 5` passent de `true`
+  à `false` (et de même dans le sens miroir, `5 > null`, etc.).
+- `null <= null` et `"abc" <= "abc"` passent de `true` à `false` : deux
+  opérandes non ordonnables ne sont pas « égaux » au sens de l'ordre. Utiliser
+  `==` pour tester l'égalité.
+- L'identité `!(a < b) == (a >= b)` n'est plus garantie quand un opérande
+  n'est pas ordonnable — comme pour `NaN` en IEEE-754 et en JavaScript.
+
+Un script qui doit distinguer « absent » de « comparé » teste explicitement
+`x == null` (ou `x ?: valeurParDéfaut`) avant la comparaison.
+
+**#10 / #11 — résolution de propriété.** - Un code qui s'appuyait sur la levée d'exception pour détecter une propriété
   manquante reçoit maintenant `null`. C'est l'objet du correctif, mais le
   changement est visible : tester `x == null`, ou `x ?: défaut`.
 - `?.` sur un receveur qui n'expose rien (nombre, booléen, objet hôte non
