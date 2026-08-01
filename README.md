@@ -50,7 +50,7 @@ void main() {
 - **Functions**: `fn(a, b) { return a + b }`
 - **Control Flow**: `if` / `else if` / `else`, `for-in` (arrays & maps), `while`, ternary `cond ? a : b`
 - **Operators**: arithmetic, comparison, logical, and compound assignment (`+=`, `-=`, `*=`, `/=`)
-- **Data Types**: numbers (whole numbers print without a trailing `.0`), strings, booleans, arrays, objects
+- **Data Types**: numbers (whole numbers print without a trailing `.0`, and reach the host as an `int` — fractions as a `double`), strings, booleans, arrays, objects
 - **Comments**: line `//` and block `/* ... */`
 - **Null Safety**: `?.` (safe access), `?:` (elvis operator)
 - **Safe by default**: built-in execution guard (op-budget + deadline)

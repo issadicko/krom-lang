@@ -170,14 +170,16 @@ void main() {
       expect(result.value, 30.0);
     });
 
-    test('bind int return converts to double', () {
+    test('bind int return stays an int', () {
       final user = User('Frank', 42, Address('Rome', 'Italy'));
 
       final result =
           KromScript.builder('user.getAge()').bind('user', user).execute();
 
       expect(result.hasErrors, false);
-      expect(result.value, 42.0); // KromScript uses doubles for numbers
+      // A whole number is an int at the boundary, whatever path it took.
+      expect(result.value, isA<int>());
+      expect(result.value, 42);
     });
 
     test('bind multiple objects', () {

@@ -15,6 +15,7 @@ library krom_script;
 
 import 'src/interpreter/environment.dart';
 import 'src/interpreter/values.dart'; // import KromBindable
+import 'src/runtime/numbers.dart'; // kromCanonicalValue: THE RULE
 
 // Exports
 export 'src/token/token.dart';
@@ -28,6 +29,7 @@ export 'src/interpreter/values.dart'; // Export KromBindable, ExecutionResult
 export 'src/natives/natives.dart';
 export 'src/errors/krom_exception.dart';
 export 'src/runtime/display.dart'; // kromDisplay: shared number/value display rule
+export 'src/runtime/numbers.dart'; // THE RULE: one numeric type at the boundary
 
 // Mini-App Engine exports
 export 'src/engine/krom_engine.dart';
@@ -46,6 +48,9 @@ import 'src/engine/execution_limits.dart';
 
 /// Result of script execution.
 class ScriptResult {
+  /// The script's value, with every number in canonical form: an integral
+  /// number is an `int`, a fractional one a `double`, however the script
+  /// reached it. See `kromCanonicalValue` for THE RULE.
   final Object? value;
   final List<String> output;
   final List<String> errors;
@@ -140,9 +145,10 @@ class KromScript {
       _customFunctions.forEach((name, fn) => natives.register(name, fn));
     }
 
-    // Interpreter with environment and natives
+    // Interpreter with environment and natives. Host variables enter through
+    // THE RULE — see `src/runtime/numbers.dart`.
     final env = Environment();
-    _variables.forEach((k, v) => env.set(k, v));
+    _variables.forEach((k, v) => env.set(k, kromCanonicalValue(v)));
     final interpreter = Interpreter(env: env, natives: natives);
 
     // Arm the execution guard (safe by default).
@@ -150,7 +156,9 @@ class KromScript {
 
     try {
       final value = interpreter.eval(program);
-      return ScriptResult(value: value, output: interpreter.getOutput());
+      // ... and leave through it, so the type does not depend on the path.
+      return ScriptResult(
+          value: kromCanonicalValue(value), output: interpreter.getOutput());
     } on KromException catch (e) {
       return ScriptResult(errors: [e.toString()]);
     } catch (e) {

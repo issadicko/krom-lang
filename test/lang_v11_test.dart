@@ -156,13 +156,15 @@ fn test() {
       expect(await run(source), 'xtrue');
     });
 
-    test('jsonStringify keeps the wire format untouched', () async {
+    test('jsonStringify encodes a whole number without a trailing .0',
+        () async {
       const source = '''
 fn test() {
   return jsonStringify({ n: 3 })
 }
 ''';
-      expect(await run(source), '{"n":3.0}');
+      // The wire format the twins agree on is `3`; see runtime/numbers.dart.
+      expect(await run(source), '{"n":3}');
     });
   });
 

@@ -90,6 +90,41 @@ très en deçà des bornes. Pour du code de confiance qui doit tourner sans
 limite, l'option est explicite : `withLimits(ExecutionLimits.unlimited)` (ou
 `limits: ExecutionLimits.unlimited`).
 
+### Représentation numérique — une seule règle, jusqu'au JSON (#14)
+
+- **Une seule représentation numérique à la frontière hôte** (#14). Le type
+  Dart d'un nombre ne dépend plus du chemin par lequel le script l'a atteint :
+  un nombre entier est un `int`, un nombre fractionnaire un `double`. Avant,
+  `m.n` et `m["n"]` rendaient `3` (donnée hôte intacte) alors que `1 + 1` et
+  `l.length` rendaient `2.0` et `3.0` (chemin calculé / réflexif) — le même
+  champ se sérialisait donc en `3` ou en `3.0` selon qu'un script l'avait
+  touché ou non.
+
+  La règle est énoncée une seule fois, dans `lib/src/runtime/numbers.dart`
+  (`kromCanonicalNumber` / `kromCanonicalValue`, tous deux exportés), et
+  appliquée à chaque passage : variables hôte entrantes, `ScriptResult.value`,
+  `KSEngineResult.value`, `KSEngine.invokeSync` / `getVariable` /
+  `reactiveState`, et les deux sens de `KromBindable`. `kromDisplay` rend
+  désormais les nombres via cette même règle.
+
+  L'arithmétique est inchangée : l'interpréteur calcule toujours en `double`,
+  la division, le modulo et les débordements se comportent à l'identique. La
+  sortie de `print()` et l'interpolation sont inchangées elles aussi
+  (`print(1 + 1)` affiche toujours `2`).
+
+- **`jsonStringify` suit la même règle** — `jsonStringify({ n: 3 })` rend
+  désormais `{"n":3}` au lieu de `{"n":3.0}`, récursivement dans les listes et
+  les maps. Cela **révoque la décision de 1.0.0** qui gardait l'encodage JSON
+  de Dart au nom du « format réseau préservé ».
+
+  Motif : ce moteur est l'un de trois jumeaux (Go côté serveur, TypeScript côté
+  web, Dart côté mobile) qui doivent produire des corps JSON identiques octet
+  pour octet. Go et TypeScript sérialisent `2`, pas `2.0` : le format réseau
+  que le canon spécifie est bien `2`, et c'était donc la divergence, non la
+  préservation. `jsonParse` est déjà canonique (`jsonDecode` rend un `int` pour
+  un littéral entier), donc `jsonStringify(jsonParse(s))` fait maintenant un
+  aller-retour stable.
+
 ### Migration
 
 **#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
@@ -118,6 +153,17 @@ Un script qui doit distinguer « absent » de « comparé » teste explicitement
   dans une lambda `fn(x) { p.methode(x) }`.
 - Le contournement qui réécrivait `bloc.champ` en `bloc?.champ` pour obtenir
   un `null` n'a plus lieu d'être.
+
+**#14 — représentation numérique.**
+
+- Un appelant qui écrivait `result.value as double` doit écrire
+  `(result.value as num).toDouble()` — de même pour les arguments reçus par un
+  `KromBindable.callMethod`, qui arrivent maintenant sous forme canonique.
+  Les comparaisons de valeur (`result.value == 2.0`) restent vraies : en Dart
+  `2 == 2.0`.
+- Qui analyse la sortie de `jsonStringify` en attendant `2.0` doit accepter
+  `2`. Un consommateur JSON standard n'est pas concerné : `2` et `2.0` s'y
+  décodent sur le même nombre.
 
 ## 1.0.1
 

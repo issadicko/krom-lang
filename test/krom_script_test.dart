@@ -208,7 +208,7 @@ void main() {
 
     group('Date/Time Functions', () {
       test('now returns timestamp', () {
-        final ts = KromScript.eval('now()') as double;
+        final ts = KromScript.eval('now()') as num;
         expect(ts, greaterThan(1700000000000)); // After Nov 2023
       });
 
@@ -230,34 +230,34 @@ void main() {
       });
 
       test('year, month, day extract components', () {
-        final year = KromScript.eval('year()') as double;
+        final year = KromScript.eval('year()') as num;
         expect(year, greaterThanOrEqualTo(2024));
 
-        final month = KromScript.eval('month()') as double;
+        final month = KromScript.eval('month()') as num;
         expect(month, inInclusiveRange(1, 12));
 
-        final day = KromScript.eval('day()') as double;
+        final day = KromScript.eval('day()') as num;
         expect(day, inInclusiveRange(1, 31));
       });
 
       test('hour, minute, second extract components', () {
-        final hour = KromScript.eval('hour()') as double;
+        final hour = KromScript.eval('hour()') as num;
         expect(hour, inInclusiveRange(0, 23));
 
-        final minute = KromScript.eval('minute()') as double;
+        final minute = KromScript.eval('minute()') as num;
         expect(minute, inInclusiveRange(0, 59));
 
-        final second = KromScript.eval('second()') as double;
+        final second = KromScript.eval('second()') as num;
         expect(second, inInclusiveRange(0, 59));
       });
 
       test('dayOfWeek returns 0-6', () {
-        final dow = KromScript.eval('dayOfWeek()') as double;
+        final dow = KromScript.eval('dayOfWeek()') as num;
         expect(dow, inInclusiveRange(0, 6));
       });
 
       test('timestamp parses date string', () {
-        final ts = KromScript.eval('timestamp("2024-12-25")') as double;
+        final ts = KromScript.eval('timestamp("2024-12-25")') as num;
         expect(ts, greaterThan(0));
       });
 

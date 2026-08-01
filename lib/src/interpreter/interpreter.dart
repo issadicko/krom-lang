@@ -7,6 +7,7 @@ import '../ast/ast.dart';
 import '../natives/natives.dart';
 import '../errors/krom_exception.dart';
 import '../runtime/display.dart';
+import '../runtime/numbers.dart';
 import '../runtime/krom_runtime_type.dart';
 import '../runtime/krom_types.dart';
 import 'environment.dart';
@@ -105,7 +106,8 @@ class Interpreter implements KromFunctionInvoker {
 
   factory Interpreter.withVariables(Map<String, Object?> variables) {
     final env = Environment();
-    variables.forEach((k, v) => env.set(k, v));
+    // Host variables enter through THE RULE — see `runtime/numbers.dart`.
+    variables.forEach((k, v) => env.set(k, kromCanonicalValue(v)));
     return Interpreter(env: env);
   }
 
@@ -749,31 +751,32 @@ class Interpreter implements KromFunctionInvoker {
       {required bool forCall}) {
     final propValue = obj.getProperty(propertyName);
     if (propValue != null) {
-      return _convertFromDartType(propValue);
+      return _acrossBindableBoundary(propValue);
     }
 
     if (!forCall) return null;
 
     // Callee position: return a callable wrapper for method invocation
     return NativeFunctionValue((args) {
-      final result = obj.callMethod(propertyName, args);
+      final result = obj.callMethod(
+          propertyName, args.map(_acrossBindableBoundary).toList());
       // Check sentinel by identity or value
       if (result == methodNotFound) {
         throw Exception(
             "method or property '$propertyName' not found on ${obj.runtimeType}");
       }
-      return _convertFromDartType(result);
+      return _acrossBindableBoundary(result);
     });
   }
 
-  /// Converts a Dart value to a KromScript-compatible value.
-  Object? _convertFromDartType(Object? value) {
-    if (value == null) return null;
-
-    // Convert Dart ints to doubles (KromScript's number type)
-    if (value is int) return value.toDouble();
-
-    // Return other types as-is (String, double, bool, List, Map, custom objects)
-    return value;
-  }
+  /// The `KromBindable` boundary, crossed in both directions: property and
+  /// method results coming in, call arguments going out.
+  ///
+  /// Applies THE RULE — see `runtime/numbers.dart` — to the number itself and
+  /// leaves everything else by identity, collections included. A bound object
+  /// hands back its own live objects (an `Obs`'s list, say); rebuilding one
+  /// here would silently break write-through. Numbers nested inside are made
+  /// canonical when the value finally leaves through `ScriptResult.value`.
+  Object? _acrossBindableBoundary(Object? value) =>
+      value is num ? kromCanonicalNumber(value) : value;
 }
