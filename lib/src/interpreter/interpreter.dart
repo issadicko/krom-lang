@@ -64,28 +64,43 @@ class Interpreter implements KromFunctionInvoker {
     return _applyFunction(fn, args);
   }
 
-  Object? _evalPropertyAccess(PropertyAccessExpr expr) {
+  Object? _evalPropertyAccess(PropertyAccessExpr expr, {bool forCall = false}) {
     final obj = _evalExpression(expr.obj);
     if (obj == null) {
       throw KromRuntimeError(
           "cannot access property '${expr.property.value}' on null");
     }
 
-    final prop = expr.property.value;
+    return _resolveProperty(obj, expr.property.value, forCall: forCall);
+  }
 
-    // Delegate to TypeRegistry
+  /// Resolves `obj.prop` on a non-null receiver.
+  ///
+  /// Presence, not truthiness, decides: a member that exists and holds null
+  /// reads as null instead of being mistaken for a resolution failure. On a
+  /// container (map, list, string) an unknown member also reads as null, the
+  /// way a missing property is `undefined` in JavaScript.
+  ///
+  /// [forCall] is true when this access is the callee of a call expression —
+  /// the only position where a bindable's method may be materialized.
+  Object? _resolveProperty(Object obj, String prop, {required bool forCall}) {
     final handler = TypeRegistry.instance.getHandler(obj);
     if (handler != null) {
-      final result = handler.getProperty(obj, prop, this);
-      if (result != null) return result;
-
-      // If property not found, handler returns null.
-      // We could also try callMethod if we wanted to support method calls directly here,
-      // but getProperty usually returns the function to be called.
+      final value = handler.getProperty(obj, prop, this);
+      // Only a null answer is ambiguous — no such member, or a member holding
+      // null — so only then is the presence check worth its dispatch.
+      if (value != null || handler.hasProperty(obj, prop, this)) return value;
+      // Handled type, unknown member: null, unless the object also exposes a
+      // binding surface of its own.
+      if (obj is! KromBindable) return null;
     }
 
-    // Fallback to bindings/reflection
-    return _reflectivePropertyAccess(obj, prop);
+    if (obj is KromBindable) {
+      return _bindablePropertyAccess(obj, prop, forCall: forCall);
+    }
+
+    throw Exception("cannot access property '$prop' on ${obj.runtimeType}: "
+        "object must implement KromBindable");
   }
 
   factory Interpreter.withVariables(Map<String, Object?> variables) {
@@ -452,13 +467,10 @@ class Interpreter implements KromFunctionInvoker {
       case '!=':
         return left != right;
       case '<':
-        return _toNumber(left) < _toNumber(right);
       case '>':
-        return _toNumber(left) > _toNumber(right);
       case '<=':
-        return _toNumber(left) <= _toNumber(right);
       case '>=':
-        return _toNumber(left) >= _toNumber(right);
+        return _compareOrdered(left, expr.operator, right);
       default:
         throw Exception('unknown operator: ${expr.operator}');
     }
@@ -483,14 +495,13 @@ class Interpreter implements KromFunctionInvoker {
     }
   }
 
-  Object? _evalSafeAccess(SafeAccessExpr expr) {
+  Object? _evalSafeAccess(SafeAccessExpr expr, {bool forCall = false}) {
     final obj = _evalExpression(expr.obj);
+    // `?.` resolves exactly like `.`; it differs on one point only — a null
+    // receiver yields null instead of throwing.
     if (obj == null) return null;
 
-    if (obj is Map) {
-      return obj[expr.property.value];
-    }
-    return null;
+    return _resolveProperty(obj, expr.property.value, forCall: forCall);
   }
 
   Object? _evalElvisExpr(ElvisExpr expr) {
@@ -533,7 +544,17 @@ class Interpreter implements KromFunctionInvoker {
       }
     }
 
-    final function = _evalExpression(funcExpr);
+    // Callee position: a property access resolved here knows it is being
+    // called, which is what lets a bindable's method be materialized without
+    // handing a callable back to a plain read.
+    final Object? function;
+    if (funcExpr is PropertyAccessExpr) {
+      function = _evalPropertyAccess(funcExpr, forCall: true);
+    } else if (funcExpr is SafeAccessExpr) {
+      function = _evalSafeAccess(funcExpr, forCall: true);
+    } else {
+      function = _evalExpression(funcExpr);
+    }
     final args = expr.arguments.map((a) => _evalExpression(a)).toList();
 
     return _applyFunction(function, args);
@@ -647,6 +668,10 @@ class Interpreter implements KromFunctionInvoker {
     return true;
   }
 
+  /// Numeric coercion for arithmetic (`+`, `-`, `*`, `/`, `%`, unary `-`) and
+  /// for list indices. Falls back to 0.0.
+  ///
+  /// Deliberately *not* used by the ordering operators: see [_compareOrdered].
   double _toNumber(Object? value) {
     if (value is double) return value;
     if (value is int) return value.toDouble();
@@ -654,23 +679,82 @@ class Interpreter implements KromFunctionInvoker {
     return 0.0;
   }
 
+  // ============ Ordering ============
+  //
+  // THE RULE — `<`, `>`, `<=` and `>=` are defined only over numbers and
+  // strings that parse as numbers. Any other operand — null, bool, map, list,
+  // function, non-numeric string — is not orderable: the comparison is
+  // undefined and evaluates to **false**, on either side, for all four
+  // operators.
+  //
+  // Why false and not an answer: an unfilled field is null, and coercing it to
+  // 0.0 — the behaviour up to 1.0.1, issue #15 — made `age < 18` true, firing
+  // a validation rule that should have stayed dormant. Under this rule
+  // `age < 18` and `age >= 18` are *both* false on unknown data, so no
+  // ordering rule fires on a value we do not have. That intentionally breaks
+  // the identity `!(a < b) == (a >= b)`, exactly as IEEE-754 NaN and
+  // JavaScript do.
+  //
+  // Why not JavaScript's coercion: JS propagates NaN the same way, but its
+  // ToNumber is permissive (null -> 0, true -> 1, [] -> 0), so JS itself
+  // answers `null < 5 === true`. KromScript has no `undefined`; null is its
+  // single absent value — an unfilled field, a missing map key, an
+  // out-of-range index, `?.` on null — so it behaves like JS's `undefined`,
+  // which is NaN. Equality (`==` / `!=`) is unaffected.
+
+  /// Applies the ordering rule above to one comparison.
+  bool _compareOrdered(Object? left, String op, Object? right) {
+    final l = _toOrderableNumber(left);
+    final r = _toOrderableNumber(right);
+
+    // Stated explicitly rather than left to IEEE-754: an undefined comparison
+    // is false for every operator, `<=` and `>=` included.
+    if (l.isNaN || r.isNaN) return false;
+
+    switch (op) {
+      case '<':
+        return l < r;
+      case '>':
+        return l > r;
+      case '<=':
+        return l <= r;
+      case '>=':
+        return l >= r;
+      default:
+        throw Exception('unknown ordering operator: $op');
+    }
+  }
+
+  /// The orderable numeric value of [value], or [double.nan] if it has none.
+  double _toOrderableNumber(Object? value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    // A numeric string keeps comparing numerically ("10" > 5); a string that
+    // is not a number does not.
+    if (value is String) return double.tryParse(value) ?? double.nan;
+    return double.nan;
+  }
+
   // ============ Bindable Object Support ============
 
   /// Accesses properties on KromBindable objects.
-  Object? _reflectivePropertyAccess(Object obj, String propertyName) {
-    if (obj is! KromBindable) {
-      throw Exception(
-          "cannot access property '$propertyName' on ${obj.runtimeType}: "
-          "object must implement KromBindable");
-    }
-
-    // First try to get as a property
+  ///
+  /// [KromBindable.getProperty] answers null both for a property that holds
+  /// null and for one the object does not know, and the interface offers no
+  /// way to ask which methods it declares. So a read resolves to the property
+  /// value or to null, and the callable method wrapper is built only where the
+  /// access is actually called ([forCall]) — a bare read must never hand host
+  /// code an opaque callable that then flows into its data.
+  Object? _bindablePropertyAccess(KromBindable obj, String propertyName,
+      {required bool forCall}) {
     final propValue = obj.getProperty(propertyName);
     if (propValue != null) {
       return _convertFromDartType(propValue);
     }
 
-    // Otherwise return a callable wrapper for method invocation
+    if (!forCall) return null;
+
+    // Callee position: return a callable wrapper for method invocation
     return NativeFunctionValue((args) {
       final result = obj.callMethod(propertyName, args);
       // Check sentinel by identity or value

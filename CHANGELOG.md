@@ -2,7 +2,71 @@
 
 ## Non publié
 
-### Sûreté (changement de comportement)
+### Analyse — sources tronquées rejetées (#12)
+
+Deux sources tronquées passaient la validation à l'analyse :
+
+- **Chaîne non terminée** : le lexeur signale désormais
+  `unterminated string literal`, à la ligne et à la colonne du guillemet
+  ouvrant, pour les deux styles de guillemets (`"` et `'`). Un guillemet
+  échappé (`\"`) ne ferme plus la chaîne par accident.
+- **Bloc non fermé** : un bloc qui atteint la fin du fichier sans son `}`
+  produit `expected TokenType.rbrace, got TokenType.eof`, exactement comme le
+  font déjà `(` et `[`.
+
+Les erreurs lexicales remontent par la liste `Parser.errors()` existante — pas
+de seconde API d'erreurs : `KromScript.run`, `KromEngine.load` et tout appel à
+`Parser(Lexer(src)).parseProgram()` les voient sans changement côté appelant.
+
+**Impact** — des sources jusqu'ici acceptées puis exécutées sont maintenant
+rejetées à l'analyse. C'est l'intention : elles ne pouvaient s'exécuter
+qu'avec une sémantique différente de celle écrite.
+
+### Ordre — plus de coercition des opérandes non numériques (#15)
+
+- **Opérateurs d'ordre (`<`, `>`, `<=`, `>=`)** — ils ne coercent plus les
+  opérandes non numériques vers `0.0` (#15). `null < 5` répondait `true` :
+  dans un moteur de règles, `age < 18` sur un champ non rempli déclenchait une
+  validation qui devait rester dormante.
+
+  L'ordre n'est désormais défini que sur les nombres et les chaînes qui se
+  parsent comme des nombres. Tout autre opérande — `null`, booléen, map,
+  liste, fonction, chaîne non numérique — rend la comparaison indéfinie, et
+  une comparaison indéfinie vaut **`false`**, des deux côtés et pour les
+  quatre opérateurs. Sur une donnée absente, `age < 18` et `age >= 18` sont
+  donc tous les deux faux : aucune règle d'ordre ne se déclenche sur une
+  valeur qu'on n'a pas.
+
+  Une chaîne numérique continue de se comparer numériquement (`"10" > 5` vaut
+  toujours `true`). L'égalité (`==` / `!=`), l'arithmétique et `sort()` sont
+  inchangées.
+
+### Résolution de propriété — null et absent lus comme null (#10, #11)
+
+- **Propriété nulle ou absente** — `m.vide` et `m.absent` valent désormais
+  `null` au lieu de lever `cannot access property … : object must implement
+  KromBindable` (#10). La résolution répondait sur la *valeur* : un `null`
+  légitime était indistinguable d'une propriété introuvable et repartait vers
+  le chemin réflexif, qui lève sur une map. Elle répond maintenant sur la
+  *présence* — `KromRuntimeType.hasProperty`, que le handler des maps résout
+  par `containsKey`. Comme ailleurs dans le langage, une propriété absente
+  vaut `null` : fausse en condition, rattrapable par `?:`.
+
+- **Objets liés (`KromBindable`)** — lire une propriété déclarée qui vaut
+  `null` renvoyait un `NativeFunctionValue`, l'emballage de méthode. Cet objet
+  est vrai en condition et se retrouvait tel quel dans les données de l'hôte —
+  une valeur calculée a écrit une fonction dans un corps JSON envoyé à un
+  serveur (#10). L'emballage n'est plus construit qu'en position d'appel
+  (`p.methode()`) ; une lecture simple vaut `null`. `Obs(null).value` vaut donc
+  `null`, et `RxList().first` sur une liste vide aussi.
+
+- **`?.` ne résolvait que sur les maps** (#11) : `l?.length` valait `null` là
+  où `l.length` valait `3`, silencieusement. `?.` effectue désormais exactement
+  la même résolution que `.` — maps, listes, chaînes, objets liés, méthodes
+  comprises — et ne court-circuite que sur un receveur `null`. `a?.b` et `a.b`
+  ne diffèrent plus que sur ce point.
+
+### Garde d'exécution — appliquée par défaut (#13)
 
 - **La garde d'exécution s'applique enfin à `KromScript`.** `ExecutionLimits`
   se documentait « sûr par défaut » mais n'était câblée que dans `KSEngine` :
@@ -25,6 +89,35 @@
 très en deçà des bornes. Pour du code de confiance qui doit tourner sans
 limite, l'option est explicite : `withLimits(ExecutionLimits.unlimited)` (ou
 `limits: ExecutionLimits.unlimited`).
+
+### Migration
+
+**#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
+
+- `null < 5`, `"abc" < 5`, `true < 5`, `[…] < 5`, `{…} < 5` passent de `true`
+  à `false` (et de même dans le sens miroir, `5 > null`, etc.).
+- `null <= null` et `"abc" <= "abc"` passent de `true` à `false` : deux
+  opérandes non ordonnables ne sont pas « égaux » au sens de l'ordre. Utiliser
+  `==` pour tester l'égalité.
+- L'identité `!(a < b) == (a >= b)` n'est plus garantie quand un opérande
+  n'est pas ordonnable — comme pour `NaN` en IEEE-754 et en JavaScript.
+
+Un script qui doit distinguer « absent » de « comparé » teste explicitement
+`x == null` (ou `x ?: valeurParDéfaut`) avant la comparaison.
+
+**#10 / #11 — résolution de propriété.**
+
+- Un code qui s'appuyait sur la levée d'exception pour détecter une propriété
+  manquante reçoit maintenant `null`. C'est l'objet du correctif, mais le
+  changement est visible : tester `x == null`, ou `x ?: défaut`.
+- `?.` sur un receveur qui n'expose rien (nombre, booléen, objet hôte non
+  `KromBindable`) lève désormais comme `.`, au lieu de valoir silencieusement
+  `null`. Seul un receveur `null` court-circuite.
+- Une méthode d'objet lié lue comme valeur (`p.methode` sans appel, pour la
+  passer en callback) vaut `null` : l'appeler directement, ou l'envelopper
+  dans une lambda `fn(x) { p.methode(x) }`.
+- Le contournement qui réécrivait `bloc.champ` en `bloc?.champ` pour obtenir
+  un `null` n'a plus lieu d'être.
 
 ## 1.0.1
 
