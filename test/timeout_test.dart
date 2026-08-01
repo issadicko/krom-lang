@@ -53,7 +53,7 @@ void main() {
       expect(result.hasErrors, isFalse);
     });
 
-    test('no timeout by default', () {
+    test('default deadline leaves a small script alone', () {
       final result = KromScript.builder('''
         let sum = 0
         for (i in [1, 2, 3, 4, 5]) {

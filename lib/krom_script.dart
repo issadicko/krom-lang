@@ -34,6 +34,7 @@ export 'src/runtime/numbers.dart'; // THE RULE: one numeric type at the boundary
 // Mini-App Engine exports
 export 'src/engine/krom_engine.dart';
 export 'src/engine/krom_engine_result.dart';
+export 'src/engine/execution_limits.dart'; // Guard applied to every execution
 export 'src/reactive/rx.dart';
 export 'src/reactive/rx_notifier.dart';
 
@@ -43,6 +44,7 @@ import 'src/interpreter/interpreter.dart';
 import 'src/natives/natives.dart';
 import 'src/cache/ast_cache.dart';
 import 'src/errors/krom_exception.dart'; // Add this import
+import 'src/engine/execution_limits.dart';
 
 /// Result of script execution.
 class ScriptResult {
@@ -68,34 +70,44 @@ class KromScript {
   final Map<String, Object?> _variables;
   final Map<String, NativeFunc> _customFunctions;
   final bool _useCache;
-  final int _maxOps;
-  final Duration _timeout;
+  final ExecutionLimits _limits;
 
   KromScript._({
     required String source,
     Map<String, Object?>? variables,
     Map<String, NativeFunc>? customFunctions,
     bool useCache = true,
-    int maxOps = 0,
-    Duration timeout = Duration.zero,
+    ExecutionLimits limits = const ExecutionLimits(),
   })  : _source = source,
         _variables = variables ?? {},
         _customFunctions = customFunctions ?? {},
         _useCache = useCache,
-        _maxOps = maxOps,
-        _timeout = timeout;
+        _limits = limits;
 
   /// Builder for KromScript execution.
   static KromScriptBuilder builder(String source) => KromScriptBuilder(source);
 
   /// Run a script with optional variables.
-  static ScriptResult run(String source, {Map<String, Object?>? variables}) {
-    return KromScriptBuilder(source).withVariables(variables ?? {}).execute();
+  ///
+  /// Runs under the safe-by-default [ExecutionLimits] unless [limits] says
+  /// otherwise; pass [ExecutionLimits.unlimited] to run unguarded.
+  static ScriptResult run(
+    String source, {
+    Map<String, Object?>? variables,
+    ExecutionLimits? limits,
+  }) {
+    final builder =
+        KromScriptBuilder(source).withVariables(variables ?? const {});
+    if (limits != null) builder.withLimits(limits);
+    return builder.execute();
   }
 
   /// Simple evaluation function.
-  static Object? eval(String source) {
-    final result = run(source);
+  ///
+  /// Runs under the safe-by-default [ExecutionLimits] unless [limits] says
+  /// otherwise; a script that trips the guard throws [KromScriptException].
+  static Object? eval(String source, {ExecutionLimits? limits}) {
+    final result = run(source, limits: limits);
     if (result.hasErrors) {
       throw KromScriptException(result.errors);
     }
@@ -139,16 +151,8 @@ class KromScript {
     _variables.forEach((k, v) => env.set(k, kromCanonicalValue(v)));
     final interpreter = Interpreter(env: env, natives: natives);
 
-    // Apply operation limit if set
-    if (_maxOps > 0) {
-      interpreter.setMaxOperations(_maxOps);
-    }
-
-    // Apply timeout if set
-    if (_timeout > Duration.zero) {
-      interpreter.setDeadline(
-          DateTime.now().millisecondsSinceEpoch + _timeout.inMilliseconds);
-    }
+    // Arm the execution guard (safe by default).
+    _limits.applyTo(interpreter);
 
     try {
       final value = interpreter.eval(program);
@@ -169,8 +173,10 @@ class KromScriptBuilder {
   final Map<String, Object?> _variables = {};
   final Map<String, NativeFunc> _customFunctions = {};
   bool _useCache = true;
-  int _maxOps = 0; // 0 = unlimited
-  Duration _timeout = Duration.zero; // zero = no timeout
+
+  /// The op-budget / deadline guard applied to the execution. Safe by default;
+  /// see [withLimits].
+  ExecutionLimits _limits = const ExecutionLimits();
 
   KromScriptBuilder(this._source);
 
@@ -229,16 +235,37 @@ class KromScriptBuilder {
     return this;
   }
 
-  /// Set the maximum number of operations allowed.
-  /// Use this to protect against infinite loops.
-  KromScriptBuilder withMaxOperations(int maxOps) {
-    _maxOps = maxOps;
+  /// Replace the execution guard wholesale.
+  ///
+  /// Executions are guarded by [ExecutionLimits] by default. Pass
+  /// [ExecutionLimits.unlimited] to run trusted code with no operation budget
+  /// and no deadline — the only way to opt out, so it stays greppable.
+  ///
+  /// ```dart
+  /// KromScript.builder(source)
+  ///     .withLimits(const ExecutionLimits(deadline: Duration(seconds: 5)))
+  ///     .execute();
+  /// ```
+  KromScriptBuilder withLimits(ExecutionLimits limits) {
+    _limits = limits;
     return this;
   }
 
-  /// Set the execution timeout.
+  /// Set the maximum number of operations allowed, overriding the default
+  /// budget. `0` = unlimited operations (the deadline still applies).
+  ///
+  /// Re-arms the guard if it was disabled by [withLimits].
+  KromScriptBuilder withMaxOperations(int maxOps) {
+    _limits = _limits.copyWith(enabled: true, maxOperations: maxOps);
+    return this;
+  }
+
+  /// Set the execution timeout, overriding the default deadline.
+  /// [Duration.zero] = no deadline (the operation budget still applies).
+  ///
+  /// Re-arms the guard if it was disabled by [withLimits].
   KromScriptBuilder withTimeout(Duration timeout) {
-    _timeout = timeout;
+    _limits = _limits.copyWith(enabled: true, deadline: timeout);
     return this;
   }
 
@@ -249,8 +276,7 @@ class KromScriptBuilder {
       variables: _variables,
       customFunctions: _customFunctions,
       useCache: _useCache,
-      maxOps: _maxOps,
-      timeout: _timeout,
+      limits: _limits,
     )._execute();
   }
 }
