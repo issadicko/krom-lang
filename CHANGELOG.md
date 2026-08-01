@@ -2,7 +2,27 @@
 
 ## Non publié
 
-### Correctifs
+### Analyse — sources tronquées rejetées (#12)
+
+Deux sources tronquées passaient la validation à l'analyse :
+
+- **Chaîne non terminée** : le lexeur signale désormais
+  `unterminated string literal`, à la ligne et à la colonne du guillemet
+  ouvrant, pour les deux styles de guillemets (`"` et `'`). Un guillemet
+  échappé (`\"`) ne ferme plus la chaîne par accident.
+- **Bloc non fermé** : un bloc qui atteint la fin du fichier sans son `}`
+  produit `expected TokenType.rbrace, got TokenType.eof`, exactement comme le
+  font déjà `(` et `[`.
+
+Les erreurs lexicales remontent par la liste `Parser.errors()` existante — pas
+de seconde API d'erreurs : `KromScript.run`, `KromEngine.load` et tout appel à
+`Parser(Lexer(src)).parseProgram()` les voient sans changement côté appelant.
+
+**Impact** — des sources jusqu'ici acceptées puis exécutées sont maintenant
+rejetées à l'analyse. C'est l'intention : elles ne pouvaient s'exécuter
+qu'avec une sémantique différente de celle écrite.
+
+### Ordre — plus de coercition des opérandes non numériques (#15)
 
 - **Opérateurs d'ordre (`<`, `>`, `<=`, `>=`)** — ils ne coercent plus les
   opérandes non numériques vers `0.0` (#15). `null < 5` répondait `true` :
@@ -23,8 +43,7 @@
 
 ### Migration
 
-Ce changement est **visible** pour un script qui s'appuyait sur l'ancienne
-coercition :
+**#15 — opérateurs d'ordre.** Visible pour un script qui s'appuyait sur l'ancienne coercition :
 
 - `null < 5`, `"abc" < 5`, `true < 5`, `[…] < 5`, `{…} < 5` passent de `true`
   à `false` (et de même dans le sens miroir, `5 > null`, etc.).
