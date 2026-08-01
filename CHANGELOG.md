@@ -1,6 +1,10 @@
 # Changelog
 
-## Non publié
+## 1.0.2
+
+Six correctifs de justesse et de sûreté (#10 à #15). Le numéro est un correctif,
+mais **plusieurs changements sont visibles** : lire la section Migration avant
+de monter de version.
 
 ### Analyse — sources tronquées rejetées (#12)
 
