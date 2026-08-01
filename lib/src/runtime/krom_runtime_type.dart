@@ -9,6 +9,16 @@ abstract class KromRuntimeType<T> {
   /// Returns `null` if the property is not found.
   Object? getProperty(T target, String name, KromFunctionInvoker invoker);
 
+  /// Whether [target] exposes a member named [name].
+  ///
+  /// Presence, not value: a member that exists and holds `null` must still
+  /// report `true`, otherwise the caller cannot tell "no such member" from
+  /// "member is null". The default answer is derived from [getProperty], which
+  /// is exact for handlers whose members are never null (lists, strings);
+  /// handlers over user data override it.
+  bool hasProperty(T target, String name, KromFunctionInvoker invoker) =>
+      getProperty(target, name, invoker) != null;
+
   /// Calls a method on the target object.
   /// Returns `null` if the method is not found (or really returns null).
   /// Should throw [KromRuntimeError] if arguments are invalid.

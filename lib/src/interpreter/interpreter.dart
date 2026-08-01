@@ -64,28 +64,43 @@ class Interpreter implements KromFunctionInvoker {
     return _applyFunction(fn, args);
   }
 
-  Object? _evalPropertyAccess(PropertyAccessExpr expr) {
+  Object? _evalPropertyAccess(PropertyAccessExpr expr, {bool forCall = false}) {
     final obj = _evalExpression(expr.obj);
     if (obj == null) {
       throw KromRuntimeError(
           "cannot access property '${expr.property.value}' on null");
     }
 
-    final prop = expr.property.value;
+    return _resolveProperty(obj, expr.property.value, forCall: forCall);
+  }
 
-    // Delegate to TypeRegistry
+  /// Resolves `obj.prop` on a non-null receiver.
+  ///
+  /// Presence, not truthiness, decides: a member that exists and holds null
+  /// reads as null instead of being mistaken for a resolution failure. On a
+  /// container (map, list, string) an unknown member also reads as null, the
+  /// way a missing property is `undefined` in JavaScript.
+  ///
+  /// [forCall] is true when this access is the callee of a call expression —
+  /// the only position where a bindable's method may be materialized.
+  Object? _resolveProperty(Object obj, String prop, {required bool forCall}) {
     final handler = TypeRegistry.instance.getHandler(obj);
     if (handler != null) {
-      final result = handler.getProperty(obj, prop, this);
-      if (result != null) return result;
-
-      // If property not found, handler returns null.
-      // We could also try callMethod if we wanted to support method calls directly here,
-      // but getProperty usually returns the function to be called.
+      final value = handler.getProperty(obj, prop, this);
+      // Only a null answer is ambiguous — no such member, or a member holding
+      // null — so only then is the presence check worth its dispatch.
+      if (value != null || handler.hasProperty(obj, prop, this)) return value;
+      // Handled type, unknown member: null, unless the object also exposes a
+      // binding surface of its own.
+      if (obj is! KromBindable) return null;
     }
 
-    // Fallback to bindings/reflection
-    return _reflectivePropertyAccess(obj, prop);
+    if (obj is KromBindable) {
+      return _bindablePropertyAccess(obj, prop, forCall: forCall);
+    }
+
+    throw Exception("cannot access property '$prop' on ${obj.runtimeType}: "
+        "object must implement KromBindable");
   }
 
   factory Interpreter.withVariables(Map<String, Object?> variables) {
@@ -480,14 +495,13 @@ class Interpreter implements KromFunctionInvoker {
     }
   }
 
-  Object? _evalSafeAccess(SafeAccessExpr expr) {
+  Object? _evalSafeAccess(SafeAccessExpr expr, {bool forCall = false}) {
     final obj = _evalExpression(expr.obj);
+    // `?.` resolves exactly like `.`; it differs on one point only — a null
+    // receiver yields null instead of throwing.
     if (obj == null) return null;
 
-    if (obj is Map) {
-      return obj[expr.property.value];
-    }
-    return null;
+    return _resolveProperty(obj, expr.property.value, forCall: forCall);
   }
 
   Object? _evalElvisExpr(ElvisExpr expr) {
@@ -530,7 +544,17 @@ class Interpreter implements KromFunctionInvoker {
       }
     }
 
-    final function = _evalExpression(funcExpr);
+    // Callee position: a property access resolved here knows it is being
+    // called, which is what lets a bindable's method be materialized without
+    // handing a callable back to a plain read.
+    final Object? function;
+    if (funcExpr is PropertyAccessExpr) {
+      function = _evalPropertyAccess(funcExpr, forCall: true);
+    } else if (funcExpr is SafeAccessExpr) {
+      function = _evalSafeAccess(funcExpr, forCall: true);
+    } else {
+      function = _evalExpression(funcExpr);
+    }
     final args = expr.arguments.map((a) => _evalExpression(a)).toList();
 
     return _applyFunction(function, args);
@@ -714,20 +738,23 @@ class Interpreter implements KromFunctionInvoker {
   // ============ Bindable Object Support ============
 
   /// Accesses properties on KromBindable objects.
-  Object? _reflectivePropertyAccess(Object obj, String propertyName) {
-    if (obj is! KromBindable) {
-      throw Exception(
-          "cannot access property '$propertyName' on ${obj.runtimeType}: "
-          "object must implement KromBindable");
-    }
-
-    // First try to get as a property
+  ///
+  /// [KromBindable.getProperty] answers null both for a property that holds
+  /// null and for one the object does not know, and the interface offers no
+  /// way to ask which methods it declares. So a read resolves to the property
+  /// value or to null, and the callable method wrapper is built only where the
+  /// access is actually called ([forCall]) — a bare read must never hand host
+  /// code an opaque callable that then flows into its data.
+  Object? _bindablePropertyAccess(KromBindable obj, String propertyName,
+      {required bool forCall}) {
     final propValue = obj.getProperty(propertyName);
     if (propValue != null) {
       return _convertFromDartType(propValue);
     }
 
-    // Otherwise return a callable wrapper for method invocation
+    if (!forCall) return null;
+
+    // Callee position: return a callable wrapper for method invocation
     return NativeFunctionValue((args) {
       final result = obj.callMethod(propertyName, args);
       // Check sentinel by identity or value
