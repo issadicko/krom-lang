@@ -1,5 +1,42 @@
 # Changelog
 
+## Non publié
+
+### Les erreurs d'exécution disent où (#24)
+
+Le lexer connaît la ligne de chaque jeton depuis toujours ; l'interprète, lui,
+levait des `Exception` nues. `undefined variable: total` arrivait donc **sans
+la moindre position**, et l'auteur n'avait qu'à relire son fichier. Seules les
+erreurs de syntaxe étaient situées.
+
+C'est pire pour une mini-app : le script exécuté est une concaténation, et
+c'est la position qui permet à l'hôte de retrouver le fichier d'origine. Sans
+elle, toute la chaîne de correspondance en aval reste sans objet.
+
+Deux mécanismes, complémentaires :
+
+- **Les sites qui connaissent le nœud fautif le nomment exactement** —
+  identifiant inconnu, propriété sur `null`, affectation impossible, indexation,
+  division par zéro, opérateur inconnu, arguments de `map`/`filter`/`reduce`/
+  `find`/`findIndex`. Ligne **et** colonne.
+- **Chaque statement sert de filet** pour le reste : ce qu'aucun site ne nomme —
+  une native qui lève, un appel sur ce qui n'est pas une fonction — reçoit au
+  moins la ligne du statement en cours. L'imbrication est sans danger : la
+  position la plus interne est posée en premier, les cadres extérieurs laissent
+  passer une erreur déjà située.
+
+Deux choses restent intactes : un `KromResourceError` (budget, délai) garde son
+type, parce que ce n'est pas une faute du code exécuté ; et une erreur qui
+portait déjà une position la conserve.
+
+`Statement` et `Expression` déclarent désormais `Token get token` — les
+sous-classes stockaient déjà ce jeton, l'exposer suffisait.
+
+**Visible pour l'appelant** : le type change pour les erreurs qui étaient des
+`Exception` nues, et devient `KromRuntimeError`. Un hôte qui filtrait sur le
+texte du message n'est pas affecté — le message est inchangé, la position s'y
+ajoute en suffixe.
+
 ## 1.0.2
 
 Six correctifs de justesse et de sûreté (#10 à #15). Le numéro est un correctif,

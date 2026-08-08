@@ -9,10 +9,19 @@ sealed class Node {
 }
 
 /// Represents a statement node.
-sealed class Statement extends Node {}
+sealed class Statement extends Node {
+  /// The token that opens this node — carries its line and column.
+  ///
+  /// Every subclass already stores one; declaring it here is what lets the
+  /// interpreter attach a position to a runtime error without a cast.
+  Token get token;
+}
 
 /// Represents an expression node.
-sealed class Expression extends Node {}
+sealed class Expression extends Node {
+  /// The token that opens this node — carries its line and column.
+  Token get token;
+}
 
 /// Function declaration: function name(params) { body }
 class FunctionDeclaration extends Statement {

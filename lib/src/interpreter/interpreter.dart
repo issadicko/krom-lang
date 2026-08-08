@@ -6,6 +6,7 @@ import 'dart:developer';
 import '../ast/ast.dart';
 import '../natives/natives.dart';
 import '../errors/krom_exception.dart';
+import '../token/token.dart';
 import '../runtime/display.dart';
 import '../runtime/numbers.dart';
 import '../runtime/krom_runtime_type.dart';
@@ -68,8 +69,8 @@ class Interpreter implements KromFunctionInvoker {
   Object? _evalPropertyAccess(PropertyAccessExpr expr, {bool forCall = false}) {
     final obj = _evalExpression(expr.obj);
     if (obj == null) {
-      throw KromRuntimeError(
-          "cannot access property '${expr.property.value}' on null");
+      _fail("cannot access property '${expr.property.value}' on null",
+          expr.token);
     }
 
     return _resolveProperty(obj, expr.property.value, forCall: forCall);
@@ -179,7 +180,42 @@ class Interpreter implements KromFunctionInvoker {
     _env.clearOutput();
   }
 
+  /// A runtime failure that says where it happened.
+  ///
+  /// The faulty token has known its line since the lexer; not carrying it into
+  /// the message is what left `undefined variable: total` sending the author
+  /// back to re-read the whole file.
+  Never _fail(String message, Token at) =>
+      throw KromRuntimeError(message, line: at.line, column: at.column);
+
+  /// [error] with the position of [at], unless it already carries one.
+  ///
+  /// The message survives, so an error raised by a native or by a corner the
+  /// interpreter does not name explicitly still gains a line.
+  KromRuntimeError _positioned(Object error, Token at) {
+    final message = error is KromException
+        ? error.message
+        : error.toString().replaceFirst(RegExp(r'^\w*(Exception|Error):\s*'), '');
+    return KromRuntimeError(message, line: at.line, column: at.column);
+  }
+
+  /// Statements are the net: whatever an expression failed to name gets at
+  /// least the line of the statement that was running. Nesting is harmless —
+  /// the innermost frame stamps first, the outer ones see a positioned error
+  /// and let it pass.
   Object? _evalStatement(Statement stmt) {
+    try {
+      return _evalStatementBody(stmt);
+    } catch (error, stack) {
+      // A budget/deadline stop is not a fault in the code being run, and an
+      // error that already names its position must keep it.
+      if (error is KromResourceError) rethrow;
+      if (error is KromException && error.line != null) rethrow;
+      Error.throwWithStackTrace(_positioned(error, stmt.token), stack);
+    }
+  }
+
+  Object? _evalStatementBody(Statement stmt) {
     // Check operation limit at each statement
     _checkOperationLimit();
     // Check deadline at each statement
@@ -232,8 +268,8 @@ class Interpreter implements KromFunctionInvoker {
     } else if (iterableVal is Map) {
       items = iterableVal.keys.toList();
     } else {
-      throw Exception(
-          'for-in requires an array or a map, got ${iterableVal?.runtimeType}');
+      _fail('for-in requires an array or a map, got ${iterableVal?.runtimeType}',
+          stmt.iterable.token);
     }
 
     Object? result;
@@ -333,7 +369,7 @@ class Interpreter implements KromFunctionInvoker {
         final native = _natives.get(expr.value);
         if (native != null) return NativeFunctionValue(native);
 
-        throw Exception('undefined variable: ${expr.value}');
+        _fail('undefined variable: ${expr.value}', expr.token);
       case FunctionLiteral():
         return FunctionValue(expr.parameters, expr.body, _env);
       case BinaryExpr():
@@ -394,7 +430,7 @@ class Interpreter implements KromFunctionInvoker {
           target[kromDisplay(index)] = right;
           return right;
         }
-        throw Exception("Cannot assign to index of ${target.runtimeType}");
+        _fail("Cannot assign to index of ${target.runtimeType}", left.token);
 
       case PropertyAccessExpr():
         final target = _evalExpression(left.obj);
@@ -404,11 +440,11 @@ class Interpreter implements KromFunctionInvoker {
           target[property] = right;
           return right;
         }
-        throw Exception(
-            "Cannot assign property '$property' on ${target.runtimeType}");
+        _fail("Cannot assign property '$property' on ${target.runtimeType}",
+            left.token);
 
       default:
-        throw Exception("Invalid assignment target: ${left.runtimeType}");
+        _fail("Invalid assignment target: ${left.runtimeType}", left.token);
     }
   }
 
@@ -427,7 +463,7 @@ class Interpreter implements KromFunctionInvoker {
       return left[key];
     }
 
-    throw Exception('index operator not supported: ${left?.runtimeType}');
+    _fail('index operator not supported: ${left?.runtimeType}', expr.token);
   }
 
   Object? _evalBinaryExpr(BinaryExpr expr) {
@@ -458,11 +494,11 @@ class Interpreter implements KromFunctionInvoker {
         return _toNumber(left) * _toNumber(right);
       case '/':
         final r = _toNumber(right);
-        if (r == 0) throw Exception('division by zero');
+        if (r == 0) _fail('division by zero', expr.token);
         return _toNumber(left) / r;
       case '%':
         final r = _toNumber(right);
-        if (r == 0) throw Exception('modulo by zero');
+        if (r == 0) _fail('modulo by zero', expr.token);
         return _toNumber(left) % r;
       case '==':
         return left == right;
@@ -474,7 +510,7 @@ class Interpreter implements KromFunctionInvoker {
       case '>=':
         return _compareOrdered(left, expr.operator, right);
       default:
-        throw Exception('unknown operator: ${expr.operator}');
+        _fail('unknown operator: ${expr.operator}', expr.token);
     }
   }
 
@@ -493,7 +529,7 @@ class Interpreter implements KromFunctionInvoker {
       case '!':
         return !_isTruthy(right);
       default:
-        throw Exception('unknown unary operator: ${expr.operator}');
+        _fail('unknown unary operator: ${expr.operator}', expr.token);
     }
   }
 
@@ -564,7 +600,7 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalMapFunction(CallExpr expr) {
     if (expr.arguments.length < 2) {
-      throw Exception('map requires 2 arguments: array and function');
+      _fail('map requires 2 arguments: array and function', expr.token);
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return <Object?>[];
@@ -578,7 +614,7 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalFilterFunction(CallExpr expr) {
     if (expr.arguments.length < 2) {
-      throw Exception('filter requires 2 arguments: array and function');
+      _fail('filter requires 2 arguments: array and function', expr.token);
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return <Object?>[];
@@ -594,8 +630,8 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalReduceFunction(CallExpr expr) {
     if (expr.arguments.length < 3) {
-      throw Exception(
-          'reduce requires 3 arguments: array, function, and initial value');
+      _fail('reduce requires 3 arguments: array, function, and initial value',
+          expr.token);
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return null;
@@ -610,7 +646,7 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalFindFunction(CallExpr expr) {
     if (expr.arguments.length < 2) {
-      throw Exception('find requires 2 arguments: array and function');
+      _fail('find requires 2 arguments: array and function', expr.token);
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return null;
@@ -625,7 +661,7 @@ class Interpreter implements KromFunctionInvoker {
 
   Object? _evalFindIndexFunction(CallExpr expr) {
     if (expr.arguments.length < 2) {
-      throw Exception('findIndex requires 2 arguments: array and function');
+      _fail('findIndex requires 2 arguments: array and function', expr.token);
     }
     final arrVal = _evalExpression(expr.arguments[0]);
     if (arrVal is! List) return -1.0;
