@@ -199,10 +199,12 @@ class Interpreter implements KromFunctionInvoker {
     return KromRuntimeError(message, line: at.line, column: at.column);
   }
 
-  /// Statements are the net: whatever an expression failed to name gets at
-  /// least the line of the statement that was running. Nesting is harmless —
-  /// the innermost frame stamps first, the outer ones see a positioned error
-  /// and let it pass.
+  /// Catches the errors the interpreter does not position itself: one raised
+  /// by a native, or a case it does not detect explicitly. Those get the line
+  /// of the statement being executed.
+  ///
+  /// Statements nest, so this runs several times for one error. Only the first
+  /// one sets a position; the outer ones see it and let the error through.
   Object? _evalStatement(Statement stmt) {
     try {
       return _evalStatementBody(stmt);

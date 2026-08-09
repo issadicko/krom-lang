@@ -13,17 +13,18 @@ C'est pire pour une mini-app : le script exécuté est une concaténation, et
 c'est la position qui permet à l'hôte de retrouver le fichier d'origine. Sans
 elle, toute la chaîne de correspondance en aval reste sans objet.
 
-Deux mécanismes, complémentaires :
+La position vient de deux endroits :
 
-- **Les sites qui connaissent le nœud fautif le nomment exactement** —
-  identifiant inconnu, propriété sur `null`, affectation impossible, indexation,
-  division par zéro, opérateur inconnu, arguments de `map`/`filter`/`reduce`/
-  `find`/`findIndex`. Ligne **et** colonne.
-- **Chaque statement sert de filet** pour le reste : ce qu'aucun site ne nomme —
-  une native qui lève, un appel sur ce qui n'est pas une fonction — reçoit au
-  moins la ligne du statement en cours. L'imbrication est sans danger : la
-  position la plus interne est posée en premier, les cadres extérieurs laissent
-  passer une erreur déjà située.
+- **Quand l'interprète détecte l'erreur lui-même**, il connaît l'expression
+  fautive et donne sa ligne et sa colonne : identifiant inconnu, propriété sur
+  `null`, affectation impossible, indexation, division par zéro, opérateur
+  inconnu, arguments de `map`/`filter`/`reduce`/`find`/`findIndex`.
+- **Pour les autres erreurs**, celles levées ailleurs — une fonction native, un
+  appel sur une valeur qui n'est pas une fonction — l'interprète donne la ligne
+  de l'instruction en cours d'exécution.
+
+Quand les deux s'appliquent, la position la plus précise est conservée : une
+erreur qui a déjà une position n'est pas réécrite.
 
 Deux choses restent intactes : un `KromResourceError` (budget, délai) garde son
 type, parce que ce n'est pas une faute du code exécuté ; et une erreur qui

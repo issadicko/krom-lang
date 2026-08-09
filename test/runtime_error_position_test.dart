@@ -9,9 +9,9 @@ import 'package:test/test.dart';
 /// where the script the engine runs is a concatenation — a position is what
 /// lets the host map the failure back to a source file.
 ///
-/// Two mechanisms, and both are exercised here: the sites that know the faulty
-/// node stamp it exactly, and every statement acts as a net for whatever they
-/// miss (a native throwing, a corner the interpreter does not name).
+/// The position comes from two places, both exercised here: the interpreter
+/// positions the errors it detects itself, and the statement being executed
+/// positions the rest (a native throwing, a case not named explicitly).
 
 /// The error message from running [source], or `null` if it succeeded.
 Future<String?> failureOf(String source) async {
@@ -55,7 +55,8 @@ void main() {
     });
 
     test('calling something that is not a function', () async {
-      // Named by the statement net: no site knows the call node here.
+      // Positioned by the statement: the interpreter does not detect this
+      // case itself, so it has no expression to point at.
       expect(
         await failureOf('fn build() {\n  let n = 3\n  return n()\n}'),
         contains('not a function'),
