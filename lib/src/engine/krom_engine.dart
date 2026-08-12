@@ -85,12 +85,24 @@ class KSEngine {
 
   /// Snapshot of the mini-app's reactive variables (`Obs`/`List`) keyed by name,
   /// with their current values — for host inspection (e.g. a state inspector).
+  ///
+  /// Namespace objects are opened one level down and their reactive entries
+  /// reported as `namespace.name`, so state a bundler moved into a module stays
+  /// visible to an inspector instead of disappearing behind the map.
   Map<String, Object?> reactiveState() {
     final env = _env;
     if (env == null) return const {};
     final out = <String, Object?>{};
     env.toMap().forEach((name, value) {
-      if (value is Rx) out[name] = kromCanonicalValue(value.value);
+      if (value is Rx) {
+        out[name] = kromCanonicalValue(value.value);
+      } else if (value is Map) {
+        value.forEach((key, nested) {
+          if (nested is Rx) {
+            out['$name.$key'] = kromCanonicalValue(nested.value);
+          }
+        });
+      }
     });
     return out;
   }
@@ -98,9 +110,8 @@ class KSEngine {
   /// Sets a reactive variable's value (triggering listeners/rebuild). Returns
   /// false if [name] is unknown, not reactive, or [value] is the wrong type.
   bool setReactiveValue(String name, Object? value) {
-    final env = _env;
-    if (env == null) return false;
-    final (current, found) = env.get(name);
+    if (_env == null) return false;
+    final (current, found) = _resolvePath(name);
     if (!found || current is! Rx) return false;
     try {
       current.value = value;
@@ -250,6 +261,30 @@ class KSEngine {
     return invokeSynchronized(funcName, args);
   }
 
+  /// Resolves [name] to a value, descending through maps on each dot.
+  ///
+  /// A plain name is looked up in the environment as before. A dotted name
+  /// (`"utils.formatMoney"`) walks the maps in between, which is what lets a
+  /// callback passed by name — `builder: "homeView.homeTab"` — reach a function
+  /// a bundler placed inside a namespace object rather than at top level.
+  ///
+  /// Only maps are traversed: anything else on the path is a miss, reported by
+  /// the caller as "not found" rather than raised here.
+  (Object?, bool) _resolvePath(String name) {
+    if (!name.contains('.')) return _env!.get(name);
+
+    final parts = name.split('.');
+    var (current, found) = _env!.get(parts.first);
+    if (!found) return (null, false);
+
+    for (final part in parts.skip(1)) {
+      if (current is! Map) return (null, false);
+      if (!current.containsKey(part)) return (null, false);
+      current = current[part];
+    }
+    return (current, true);
+  }
+
   /// Invokes a function synchronously.
   ///
   /// Throws if the engine is not loaded or the function doesn't exist.
@@ -258,7 +293,7 @@ class KSEngine {
       throw KromRuntimeError('Engine not loaded. Call load() first.');
     }
 
-    final (funcValue, found) = _env!.get(funcName);
+    final (funcValue, found) = _resolvePath(funcName);
 
     if (!found) {
       throw KromRuntimeError('Function "$funcName" not found');
@@ -281,7 +316,7 @@ class KSEngine {
     }
 
     // Look up the function in the environment
-    final (funcValue, found) = _env!.get(funcName);
+    final (funcValue, found) = _resolvePath(funcName);
 
     if (!found) {
       return KSEngineResult.error(['Function "$funcName" not found']);

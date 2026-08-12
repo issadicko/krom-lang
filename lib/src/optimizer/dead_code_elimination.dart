@@ -21,6 +21,13 @@ class DeadCodeElimination {
   void _collectUsages(Node node) {
     if (node is Identifier) {
       _usedVariables.add(node.value);
+    } else if (node is StringLiteral) {
+      // `builder: "homeView.homeTab"` names a function through an object the
+      // host resolves at call time. The object itself is only ever read from
+      // that string, so without this it looks unused and gets dropped —
+      // taking every module a bundler scoped with it.
+      final root = _dottedRoot(node.value);
+      if (root != null) _usedVariables.add(root);
     } else if (node is Program) {
       for (final stmt in node.statements) {
         if (stmt is VarDecl) {
@@ -88,6 +95,15 @@ class DeadCodeElimination {
       _collectUsages(node.body);
     }
   }
+
+  /// The first segment of [value] when it reads as a dotted callback name
+  /// (`"ns.fn"`, `"a.b.c"`), null otherwise. Deliberately strict: an ordinary
+  /// sentence or a file name must not keep a variable alive.
+  static final _dottedName =
+      RegExp(r'^([A-Za-z_]\w*)(?:\.[A-Za-z_]\w*)+$');
+
+  String? _dottedRoot(String value) =>
+      _dottedName.firstMatch(value)?.group(1);
 
   Program _filterProgram(Program program) {
     final statements = <Statement>[];

@@ -1,6 +1,6 @@
 name: krom_script
 description: A lightweight, embeddable scripting language for Dart applications.
-version: 1.0.3
+version: 1.0.4
 homepage: https://github.com/issadicko/krom-lang
 repository: https://github.com/issadicko/krom-lang
 issue_tracker: https://github.com/issadicko/krom-lang/issues
