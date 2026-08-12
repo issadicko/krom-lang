@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.0.4
+
+### Une fonction appelée par son nom peut vivre dans un espace de noms
+
+`invoke`, `invokeSync` et `invokeSynchronized` cherchaient le nom reçu dans
+l'environnement, à plat. Un hôte qui passe une fonction par chaîne de
+caractères — `builder: "homeTab"`, `onTap: "valider"` — ne pouvait donc
+atteindre qu'une déclaration de premier niveau.
+
+Le nom accepte désormais des points : `"homeView.homeTab"` récupère
+`homeView`, descend dans la map, et appelle ce qu'il y trouve. Chaque segment
+intermédiaire doit être une map ; sinon la résolution échoue proprement sur le
+`not found` habituel, ce qui laisse intact le moyen qu'a l'hôte de distinguer
+un hook absent d'une vraie erreur.
+
+Un nom sans point suit exactement le chemin d'avant.
+
+Ça ouvre le bundler aux imports scopés : un module compilé en fermeture expose
+ses déclarations dans un objet, et ses fonctions restent adressables par nom.
+
+### L'état réactif d'un module reste visible
+
+`reactiveState()` ne voyait que les `Obs` de premier niveau, et ceux d'un
+module scopé auraient disparu derrière leur map. Les objets sont maintenant
+ouverts d'un niveau et leurs entrées réactives rapportées sous la forme
+`module.nom`. `setReactiveValue()` accepte le même chemin, pour qu'un
+inspecteur d'état puisse toujours écrire ce qu'il affiche.
+
 ## 1.0.3
 
 ### Les erreurs d'exécution disent où (#24)
