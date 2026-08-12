@@ -28,6 +28,17 @@ ouverts d'un niveau et leurs entrées réactives rapportées sous la forme
 `module.nom`. `setReactiveValue()` accepte le même chemin, pour qu'un
 inspecteur d'état puisse toujours écrire ce qu'il affiche.
 
+### Un alias qui ne vit que dans une chaîne n'est plus supprimé
+
+L'élimination de code mort ne comptait comme usage qu'un identifiant. Une
+variable dont la seule référence est une chaîne pointée — `builder:
+"homeView.homeTab"`, que l'hôte résout à l'appel — passait donc pour morte et
+disparaissait, emportant le module entier.
+
+Une chaîne de la forme `nom.nom` compte désormais comme un usage de son premier
+segment. Le motif est strict : une phrase ou un nom de fichier ne garde rien en
+vie.
+
 ## 1.0.3
 
 ### Les erreurs d'exécution disent où (#24)
