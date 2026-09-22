@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.5
+
+### La virgule finale est acceptée dans les tableaux et les appels
+
+Un tableau ou un appel écrit un élément par ligne se termine naturellement par
+une virgule ; le parseur la refusait (« no prefix parse function for ] »). Elle
+est désormais acceptée, comme elle l'était déjà dans les objets.
+
+
 ## 1.0.4
 
 ### Une fonction appelée par son nom peut vivre dans un espace de noms
