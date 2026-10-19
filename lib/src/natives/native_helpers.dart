@@ -92,3 +92,14 @@ Map getArgAsMap(List<Object?> args, int index, String funcName) {
   throw ArgumentError(
       '$funcName argument $index must be a map, got ${val?.runtimeType ?? "null"}');
 }
+
+/// The name `typeOf` gives to [value].
+String typeName(Object? value) {
+  if (value == null) return 'null';
+  if (value is String) return 'string';
+  if (value is double || value is int) return 'number';
+  if (value is bool) return 'boolean';
+  if (value is Map) return 'object';
+  if (value is List) return 'array';
+  return 'unknown';
+}

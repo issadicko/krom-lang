@@ -1,5 +1,84 @@
 # Changelog
 
+## 1.1.0
+
+### Les dates se lisent en texte ISO et se calculent en UTC
+
+Un argument `date` est un nombre (millisecondes depuis 1970-01-01T00:00:00Z,
+fraction tronquée vers zéro) ou un texte ISO : `YYYY-MM-DD`,
+`YYYY-MM-DDTHH:mm[:ss[.S…]]` (espace accepté à la place du `T`, fraction
+gardée à la milliseconde), suivi au besoin de `Z` ou d'un décalage `+HH:mm`,
+`-HH:mm` ou `+HHmm`. Sans zone, l'heure est en UTC.
+
+La lecture est stricte : `DateTime.parse` normalise `2026-02-29` en 1er mars,
+elle ne sert donc pas. Le mois, le jour (années bissextiles comprises),
+l'heure, la minute et la seconde sont vérifiés ; `2026-02-29` n'est pas une
+date.
+
+Les fonctions existantes changent en conséquence :
+
+- `date()`, `time()`, `datetime()`, `year`, `month`, `day`, `hour`, `minute`,
+  `second`, `dayOfWeek` calculent en UTC. Elles suivaient le fuseau de l'hôte,
+  et un même script donnait deux réponses sur deux machines.
+- `timestamp`, `formatDate`, `year`…`dayOfWeek`, `addDays`, `addHours` et
+  `diffDays` acceptent un texte ISO, plus seulement des millisecondes.
+- Une date illisible donne `null` au lieu de lever : `timestamp("nope")` vaut
+  `null`. Un nombre en texte (`"1700000000000"`) n'est plus une date.
+- Le nombre de jours ou d'heures de `addDays` / `addHours` doit être un
+  nombre ; un texte numérique (`"2"`) est refusé, il était converti.
+- `diffDays(a, b)` vaut `trunc((b - a) / 86 400 000)` : négatif quand `b < a`.
+- `datetime()` écrit `YYYY-MM-DDTHH:mm:ss.SSSZ`, comme `toISO(now())`.
+- `formatDate` connaît `YY` et `SSS` ; la lecture du format se fait de gauche à
+  droite, le jeton le plus long l'emporte, le reste est recopié.
+
+### Nouvelles fonctions de date
+
+`parseDate(texte, format)`, `isDate`, `toISO`, `addMonths`, `addYears`,
+`addMinutes`, `addSeconds`, `diffHours`, `diffMinutes`, `diffMonths`,
+`diffYears`, `age(naissance, [à])`, `startOfDay`, `endOfDay`, `startOfMonth`,
+`endOfMonth`, `daysInMonth`, `isWeekend`.
+
+`addMonths` et `addYears` ramènent un jour inexistant au dernier jour du mois
+cible (`2026-01-31` + 1 mois = `2026-02-28`). `diffMonths` compte les mois
+calendaires entiers, heure du jour comprise. `parseDate` lit chaque jeton sur
+sa largeur exacte, exige que le texte soit consommé en entier et rend `null`
+pour une date qui n'existe pas (`31/02/2026`).
+
+### Nouvelles fonctions de liste
+
+`chunk`, `compact`, `pluck`, `zip`, `fromEntries`, `difference`,
+`intersection`, `union`. Une liste `null` vaut une liste vide ; toute autre
+valeur qui n'est pas une liste lève.
+
+Deux valeurs sont égales quand elles ont le même type et le même texte, clés
+triées : `1` égale `1.0` mais pas `"1"`, et `{a: 1, b: 2}` égale
+`{b: 2, a: 1}`. Un chemin (`"ville.nom"`, `"items.0.id"`) lit une clé d'objet
+ou un indice de liste écrit en chiffres ; `""` désigne l'élément lui-même.
+
+### Regroupements par clé
+
+`groupBy`, `countBy`, `indexBy`, `uniqueBy`, `sumBy`, `minBy`, `maxBy` et
+`partition` vivent à côté de `map` et `filter` : la clé est un chemin ou une
+fonction `fn(item, index)`, et la fonction rappelle le script. Un `sumBy` sur
+une clé qui n'est pas un nombre lève ; `minBy` et `maxBy` rendent l'élément, le
+premier en cas d'égalité, `null` quand il ne reste aucune clé.
+
+Les objets construits par `groupBy`, `countBy`, `indexBy` et `fromEntries`
+rangent leurs clés dans l'ordre trié, l'ordre dans lequel les autres SDK les
+affichent. Une fonction déclarée par le script, ou enregistrée par l'hôte, sous
+le même nom reste prioritaire.
+
+### Toute native s'appelle comme une méthode
+
+`"2026-10-19".addDays(1).toISO()` et `items.groupBy("type")` s'écrivent
+comme `addDays("2026-10-19", 1)` : quand le récepteur n'a aucun membre
+appelable de ce nom, l'appel devient `nom(récepteur, args…)`. Un membre
+appelable du récepteur reste prioritaire. Un nombre ou un booléen peut
+désormais être récepteur, ce qui permet d'enchaîner (`addDays` rend des
+millisecondes) ; une méthode inconnue échoue comme avant.
+
+`liste.size()` échouait, `size` étant la propriété, et fonctionne maintenant.
+
 ## 1.0.5
 
 ### La virgule finale est acceptée dans les tableaux et les appels

@@ -5,6 +5,7 @@ import 'math_natives.dart';
 import 'string_natives.dart';
 import 'date_natives.dart';
 import 'io_natives.dart';
+import 'list_natives.dart';
 import 'misc_natives.dart';
 
 /// Native function signature.
@@ -44,5 +45,6 @@ class NativeFunctions {
     registerMathNatives(this);
     registerDateNatives(this);
     registerIONatives(this);
+    registerListNatives(this);
   }
 }

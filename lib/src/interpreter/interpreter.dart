@@ -11,6 +11,7 @@ import '../runtime/display.dart';
 import '../runtime/numbers.dart';
 import '../runtime/krom_runtime_type.dart';
 import '../runtime/krom_types.dart';
+import 'by_key.dart';
 import 'environment.dart';
 import 'values.dart';
 
@@ -85,7 +86,8 @@ class Interpreter implements KromFunctionInvoker {
   ///
   /// [forCall] is true when this access is the callee of a call expression —
   /// the only position where a bindable's method may be materialized.
-  Object? _resolveProperty(Object obj, String prop, {required bool forCall}) {
+  Object? _resolveProperty(Object obj, String prop,
+      {required bool forCall, bool orNoMembers = false}) {
     final handler = TypeRegistry.instance.getHandler(obj);
     if (handler != null) {
       final value = handler.getProperty(obj, prop, this);
@@ -101,9 +103,14 @@ class Interpreter implements KromFunctionInvoker {
       return _bindablePropertyAccess(obj, prop, forCall: forCall);
     }
 
+    // A value with no members: [orNoMembers] lets a method call fall back on
+    // a function instead of failing here.
+    if (orNoMembers) return _noMembers;
     throw Exception("cannot access property '$prop' on ${obj.runtimeType}: "
         "object must implement KromBindable");
   }
+
+  static const _noMembers = Object();
 
   factory Interpreter.withVariables(Map<String, Object?> variables) {
     final env = Environment();
@@ -584,20 +591,73 @@ class Interpreter implements KromFunctionInvoker {
       }
     }
 
+    // Grouping builtins, unless the script or the host defines the same name.
+    if (funcExpr is Identifier &&
+        byKeyBuiltins.contains(funcExpr.value) &&
+        !_isDefined(funcExpr.value)) {
+      final args = expr.arguments.map((a) => _evalExpression(a)).toList();
+      return callByKey(funcExpr.value, args, this);
+    }
+
     // Callee position: a property access resolved here knows it is being
     // called, which is what lets a bindable's method be materialized without
     // handing a callable back to a plain read.
-    final Object? function;
     if (funcExpr is PropertyAccessExpr) {
-      function = _evalPropertyAccess(funcExpr, forCall: true);
-    } else if (funcExpr is SafeAccessExpr) {
-      function = _evalSafeAccess(funcExpr, forCall: true);
-    } else {
-      function = _evalExpression(funcExpr);
+      return _evalMethodCall(expr, funcExpr.obj, funcExpr.property,
+          at: funcExpr.token, safe: false);
     }
+    if (funcExpr is SafeAccessExpr) {
+      return _evalMethodCall(expr, funcExpr.obj, funcExpr.property,
+          at: funcExpr.token, safe: true);
+    }
+    final function = _evalExpression(funcExpr);
     final args = expr.arguments.map((a) => _evalExpression(a)).toList();
 
     return _applyFunction(function, args);
+  }
+
+  /// `receiver.method(args)`.
+  ///
+  /// A member of the receiver wins. When it has none that can be called, the
+  /// call reads as `method(receiver, args)`: any native or grouping builtin is
+  /// available as a method, so `"2026-10-19".addDays(1).toISO()` and
+  /// `items.groupBy("type")` work on strings, numbers and lists alike.
+  Object? _evalMethodCall(CallExpr expr, Expression target, Identifier method,
+      {required Token at, required bool safe}) {
+    final receiver = _evalExpression(target);
+    final name = method.value;
+
+    Object? function;
+    if (receiver == null) {
+      if (!safe) _fail("cannot access property '$name' on null", at);
+    } else {
+      function =
+          _resolveProperty(receiver, name, forCall: true, orNoMembers: true);
+    }
+    final args = expr.arguments.map((a) => _evalExpression(a)).toList();
+
+    if (receiver != null &&
+        function is! FunctionValue &&
+        function is! NativeFunctionValue) {
+      final native = _natives.get(name);
+      if (native != null) return native([receiver, ...args]);
+      if (byKeyBuiltins.contains(name)) {
+        return callByKey(name, [receiver, ...args], this);
+      }
+      // A value with no members says so the way a property read on it does.
+      if (identical(function, _noMembers)) {
+        _resolveProperty(receiver, name, forCall: true);
+      }
+    }
+
+    return _applyFunction(function, args);
+  }
+
+  /// Whether the script or the host gives [name] a meaning of its own, which
+  /// then takes precedence over a builtin of the same name.
+  bool _isDefined(String name) {
+    final (_, found) = _env.get(name);
+    return found || _natives.get(name) != null;
   }
 
   Object? _evalMapFunction(CallExpr expr) {

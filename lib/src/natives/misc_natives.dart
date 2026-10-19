@@ -44,14 +44,7 @@ void registerMiscNatives(NativeFunctions registry) {
 
 Object? _nativeTypeOf(List<Object?> args) {
   requireArgs(args, 1, 'typeOf');
-  final arg = args[0];
-  if (arg == null) return 'null';
-  if (arg is String) return 'string';
-  if (arg is double || arg is int) return 'number';
-  if (arg is bool) return 'boolean';
-  if (arg is Map) return 'object';
-  if (arg is List) return 'array';
-  return 'unknown';
+  return typeName(args[0]);
 }
 
 Object? _nativeIsNull(List<Object?> args) {
