@@ -20,6 +20,10 @@ void registerStringNatives(NativeFunctions registry) {
   registry.register('padLeft', _nativePadLeft);
   registry.register('padRight', _nativePadRight);
   registry.register('repeat', _nativeRepeat);
+  registry.register('parseInt', _nativeParseInt);
+  registry.register('parseFloat', _nativeParseFloat);
+  registry.register('regexMatch', _nativeRegexMatch);
+  registry.register('regexReplace', _nativeRegexReplace);
 }
 
 Object? _nativeToString(List<Object?> args) {
@@ -132,4 +136,80 @@ Object? _nativeRepeat(List<Object?> args) {
   final str = args[0]?.toString() ?? '';
   final count = getArgAsInt(args, 1, 'repeat').clamp(0, 1000000);
   return str * count;
+}
+
+/// A number, or a number written in text (surrounding spaces ignored).
+double _parseNumber(String name, Object? value, String what) {
+  if (value is num) return value.toDouble();
+  if (value is String) {
+    final parsed = double.tryParse(value.trim());
+    if (parsed != null) return parsed;
+    throw ArgumentError("cannot parse '$value' as $what");
+  }
+  throw ArgumentError('$name requires a string or number');
+}
+
+/// Truncated toward zero: `parseInt("3.9")` is `3`, `parseInt("-3.9")` is `-3`.
+Object? _nativeParseInt(List<Object?> args) {
+  requireArgs(args, 1, 'parseInt');
+  final n = _parseNumber('parseInt', args[0], 'integer');
+  return n.isFinite ? n.truncateToDouble() : n;
+}
+
+Object? _nativeParseFloat(List<Object?> args) {
+  requireArgs(args, 1, 'parseFloat');
+  return _parseNumber('parseFloat', args[0], 'number');
+}
+
+RegExp _pattern(String name, Object? pattern) {
+  if (pattern is! String) {
+    throw ArgumentError('$name requires a string pattern');
+  }
+  try {
+    return RegExp(pattern);
+  } on FormatException catch (e) {
+    throw ArgumentError('invalid regex: ${e.message}');
+  }
+}
+
+/// True when [pattern] matches anywhere in the text; anchor it with `^…$` to
+/// test the whole text.
+Object? _nativeRegexMatch(List<Object?> args) {
+  requireArgs(args, 2, 'regexMatch');
+  final text = args[0];
+  if (text is! String) {
+    throw ArgumentError('regexMatch requires a string as first argument');
+  }
+  return _pattern('regexMatch', args[1]).hasMatch(text);
+}
+
+/// Replaces every match. The replacement reads `$1` as a group, `$<name>` as
+/// a named group, `$&` as the whole match and `$$` as a dollar sign — the
+/// JavaScript spelling, since `${…}` is string interpolation in the language.
+Object? _nativeRegexReplace(List<Object?> args) {
+  requireArgs(args, 3, 'regexReplace');
+  final text = args[0];
+  if (text is! String) {
+    throw ArgumentError('regexReplace requires a string as first argument');
+  }
+  final replacement = args[2];
+  if (replacement is! String) {
+    throw ArgumentError('regexReplace requires a string replacement');
+  }
+  final reference = RegExp(r'\$(\$|&|\d+|<(\w+)>)');
+  return text.replaceAllMapped(_pattern('regexReplace', args[1]), (match) {
+    return replacement.replaceAllMapped(reference, (ref) {
+      final token = ref[1]!;
+      if (token == r'$') return r'$';
+      if (token == '&') return match[0]!;
+      final name = ref[2];
+      if (name != null) {
+        return match is RegExpMatch && match.groupNames.contains(name)
+            ? (match.namedGroup(name) ?? '')
+            : ref[0]!;
+      }
+      final index = int.parse(token);
+      return index <= match.groupCount ? (match.group(index) ?? '') : ref[0]!;
+    });
+  });
 }

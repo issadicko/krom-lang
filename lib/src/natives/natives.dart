@@ -7,6 +7,7 @@ import 'date_natives.dart';
 import 'io_natives.dart';
 import 'list_natives.dart';
 import 'misc_natives.dart';
+import 'object_natives.dart';
 
 /// Native function signature.
 typedef NativeFunc = Object? Function(List<Object?> args);
@@ -46,5 +47,6 @@ class NativeFunctions {
     registerDateNatives(this);
     registerIONatives(this);
     registerListNatives(this);
+    registerObjectNatives(this);
   }
 }

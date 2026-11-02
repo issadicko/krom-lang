@@ -139,11 +139,15 @@ other at its default.
 
 | Category | Functions |
 |----------|-----------|
-| String | `toString`, `toNumber`, `length`, `substring`, `toUpperCase`, `toLowerCase`, `trim`, `split`, `join`, `replace`, `contains`, `startsWith`, `endsWith`, `indexOf` |
+| String | `toString`, `toNumber`, `length`, `substring`, `toUpperCase`, `toLowerCase`, `trim`, `split`, `join`, `replace`, `contains`, `startsWith`, `endsWith`, `indexOf`, `padLeft`, `padRight`, `repeat` |
+| Number parsing | `parseInt`, `parseFloat` |
+| Regex | `regexMatch`, `regexReplace` |
 | Math | `abs`, `floor`, `ceil`, `round`, `min`, `max`, `pow`, `sqrt`, `sin`, `cos`, `tan`, `log`, `log10`, `exp` |
 | Random | `random`, `randomInt`, `randomUUID` |
 | Type | `typeOf`, `isNull`, `isNumber`, `isString`, `isBool` |
-| Array | `size`, `first`, `last`, `reverse`, `slice`, `sort`, `chunk`, `compact`, `pluck`, `zip`, `fromEntries`, `difference`, `intersection`, `union` |
+| Array | `size`, `first`, `last`, `reverse`, `slice`, `sort`, `sortBy`, `sum`, `avg`, `unique`, `flatten`, `push`, `concat`, `chunk`, `compact`, `pluck`, `zip`, `fromEntries`, `difference`, `intersection`, `union` |
+| Array with a function | `map`, `filter`, `reduce`, `find`, `findIndex`, `some`, `every`, `flatMap` |
+| Object | `keys`, `values`, `entries`, `has` |
 | Array by key | `groupBy`, `countBy`, `indexBy`, `uniqueBy`, `sumBy`, `minBy`, `maxBy`, `partition` |
 | JSON | `jsonParse`, `jsonStringify` |
 | Encoding | `base64Encode`, `base64Decode`, `urlEncode`, `urlDecode` |
@@ -189,6 +193,16 @@ same type and the same text once keys are sorted: `1` equals `1.0` but not
 `"1"`, and `{a: 1, b: 2}` equals `{b: 2, a: 1}`. The objects built by
 `groupBy`, `countBy`, `indexBy` and `fromEntries` list their keys in sorted
 order.
+
+### Objects and regular expressions
+
+`keys`, `values` and `entries` list an object in sorted key order. `null` is an
+empty object for them and for `has`, which reads a key of an object (a key
+holding `null` counts) or a value of a list, with the equality of the list
+functions.
+
+`regexReplace` replaces every match; its replacement reads `$1`, `$<name>`, `$&`
+and `$$`, as in JavaScript (`${…}` is string interpolation).
 
 ### Method syntax
 

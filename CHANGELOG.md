@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0
+
+### Les natives de Kodiscript qui manquaient
+
+KromScript rejoint la bibliothèque standard des autres SDK : un script écrit
+pour le web ou le serveur ne tombe plus sur `undefined variable` en Dart.
+
+- Listes : `sum`, `avg`, `unique`, `flatten` (un niveau), `push` (rend une
+  nouvelle liste), `concat`, `sortBy(liste, chemin, ["asc"|"desc"])` (stable,
+  chemin pointé), et `some`, `every`, `flatMap` à côté de `map` et `filter`.
+- Objets : `keys`, `values`, `entries` (clés triées, comme à l'affichage),
+  `has(objet|liste, clé|valeur)`.
+- Nombres : `parseInt` (tronqué vers zéro), `parseFloat`.
+- Expressions régulières : `regexMatch`, `regexReplace`. Le remplacement lit
+  `$1`, `$<nom>`, `$&` et `$$`, l'écriture JavaScript : `${…}` est déjà
+  l'interpolation des chaînes.
+
+`null` vaut une liste vide pour les fonctions de liste, un objet vide pour
+`keys`, `values`, `entries` et `has` : une valeur pas encore chargée ne fait pas
+échouer le script. Dans `sum` et `avg`, un élément `null` compte pour `0`, comme
+dans un calcul : le total des lignes d'un formulaire ignore celles qui n'ont
+pas encore de montant, et donne le même résultat que le moteur TypeScript.
+
 ## 1.1.0
 
 ### Les dates se lisent en texte ISO et se calculent en UTC

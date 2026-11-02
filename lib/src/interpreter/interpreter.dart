@@ -202,7 +202,9 @@ class Interpreter implements KromFunctionInvoker {
   KromRuntimeError _positioned(Object error, Token at) {
     final message = error is KromException
         ? error.message
-        : error.toString().replaceFirst(RegExp(r'^\w*(Exception|Error):\s*'), '');
+        : error
+            .toString()
+            .replaceFirst(RegExp(r'^\w*(Exception|Error):\s*'), '');
     return KromRuntimeError(message, line: at.line, column: at.column);
   }
 
@@ -277,7 +279,8 @@ class Interpreter implements KromFunctionInvoker {
     } else if (iterableVal is Map) {
       items = iterableVal.keys.toList();
     } else {
-      _fail('for-in requires an array or a map, got ${iterableVal?.runtimeType}',
+      _fail(
+          'for-in requires an array or a map, got ${iterableVal?.runtimeType}',
           stmt.iterable.token);
     }
 
@@ -588,6 +591,12 @@ class Interpreter implements KromFunctionInvoker {
           return _evalFindFunction(expr);
         case 'findIndex':
           return _evalFindIndexFunction(expr);
+        case 'some':
+          return _evalSomeFunction(expr);
+        case 'every':
+          return _evalEveryFunction(expr);
+        case 'flatMap':
+          return _evalFlatMapFunction(expr);
       }
     }
 
@@ -734,6 +743,58 @@ class Interpreter implements KromFunctionInvoker {
       }
     }
     return -1.0;
+  }
+
+  /// `false` for anything but a list, like an empty one.
+  Object? _evalSomeFunction(CallExpr expr) {
+    if (expr.arguments.length < 2) {
+      _fail('some requires 2 arguments: array and function', expr.token);
+    }
+    final arrVal = _evalExpression(expr.arguments[0]);
+    if (arrVal is! List) return false;
+    final fnVal = _evalExpression(expr.arguments[1]);
+    for (var i = 0; i < arrVal.length; i++) {
+      if (_isTruthy(_applyFunction(fnVal, [arrVal[i], i.toDouble()]))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// `true` for anything but a list, like an empty one: nothing contradicts it.
+  Object? _evalEveryFunction(CallExpr expr) {
+    if (expr.arguments.length < 2) {
+      _fail('every requires 2 arguments: array and function', expr.token);
+    }
+    final arrVal = _evalExpression(expr.arguments[0]);
+    if (arrVal is! List) return true;
+    final fnVal = _evalExpression(expr.arguments[1]);
+    for (var i = 0; i < arrVal.length; i++) {
+      if (!_isTruthy(_applyFunction(fnVal, [arrVal[i], i.toDouble()]))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Maps, then flattens one level: a result that is not a list is kept as is.
+  Object? _evalFlatMapFunction(CallExpr expr) {
+    if (expr.arguments.length < 2) {
+      _fail('flatMap requires 2 arguments: array and function', expr.token);
+    }
+    final arrVal = _evalExpression(expr.arguments[0]);
+    if (arrVal is! List) return <Object?>[];
+    final fnVal = _evalExpression(expr.arguments[1]);
+    final result = <Object?>[];
+    for (var i = 0; i < arrVal.length; i++) {
+      final value = _applyFunction(fnVal, [arrVal[i], i.toDouble()]);
+      if (value is List) {
+        result.addAll(value);
+      } else {
+        result.add(value);
+      }
+    }
+    return result;
   }
 
   Object? _applyFunction(Object? fn, List<Object?> args) {
